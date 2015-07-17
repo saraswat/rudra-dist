@@ -1,0 +1,47 @@
+Notes by vj of a discussion with Frederic Bastien, Fri Jul 3, 2015
+
+The essential idea is to leverage Rudra to complement Theano (and Caffe) -- with their focus on "single learner" code. 
+
+Theano's core strength is the compilation chain for ML code -- the user writes "symbolic" code in a limited subset of Python, and the Theano compiler organizes an intermediate representation (operator graph), optimizes and stabilizes it and generates C++ code for execution in a single learner. 
+
+Caffe has a pure runtime.
+
+Recall the ASGD framework offers a pretty simple setting in which such "single learners" can be combined into a (data-parallel) ensemble of learners operating on the same model, very much in the way in X10 we have combined multiple SAT solvers (SAT-X10).
+
+Each learner is abstracted as an arbitrary piece of code which interacts with its surrounding ASGBD harness with just these functions:
+
+initialize(...)
+set_param(const void * ptr, int size);// c contigous, all layers in order, shapes fixed by models and statically know, size only for safety check
+train(const void * ptr, int * shapes, int nd); // minibatch and associated information
+get_update(void * ptr); // ptr to where we set the data, as a result of this call the data pointed to is updated with the current set of parameters in the learner
+shutdown()
+
+The harness (think X10 control program) is launched as a single job, in turn it creates multiple learner processes on the cluster, and a parameter server (for now as a single process, though this should be distributed as well).
+
+Each learner process contains an instance of the code implementing the interface described above and initializes it with initialize(). In ASGD typically each learner runs the same code inside the learner (i.e. is training the same model, using SGD). But of course systematizing the interface means that some interesting cross-library experiments could be run (some learners are Theano learners, some Caffe, some native Rudra, etc).
+
+For each learner, the (distributed) harness works asynchronously and locally. It sets the model parameters for the learner using set_param. It then feeds a number of minibatches to the learner. Once that is accomplished it fishes out the current values of parameters through get_update (or perhaps better, fishes out the current delta?), communicates them to the parameter server, receives the new parameter set from the server, and repeats the cycle. 
+
+Asynchronously, some learners are run in inference mode to determine if the parameter set is good enough (this needs to be fleshed out a bit more). 
+
+Once the decision is made to terminate the training job, shutdown() is invoked on each learner, and the job shuts down once all learners are terminated.
+
+The above more or less describes how Rudra works today.
+
+The design above not cover model parallelism -- that is intended to be dealt with within the learner. For instance as we do in Rudra today, a learner could be internally multi-threaded. The harness is also insensitive in principle to whether the learner runs on multiple CPUs or GPUs or CPU+GPU hybrids.
+
+I believe that Caffe can be encapsulated in this way as a learner as well, that is fed by the harness.
+
+Torch should be, as well, but I need to look into its design more.
+
+I can see my way to writing this harness as a couple of 100 lines of X10 code. (Of course ignoring the code to actually read data off the disk and feed minibatches.) The main interest is going to be in getting efficient data-transport to/from parameter server. 
+
+ELASTICITY AND RESILIENCE
+
+Turns out that on the U Montreal cluster it makes sense to submit a job for some number N of GPUs, but have the job started even when M < N GPUs are available. The other GPUs can join in as they roll off other jobs. 
+
+Dually, it should make sense to permit a GPU  assigned to a job to be pre-empted when a higher priority job is ready, and so permit the existing job to continue with fewer resources. 
+
+I suspect that algorithmically the ASGD framework could be organized to permit such resilience and elasticitiy. 
+
+Can this be done on top of (native) X10? Using some of the new adaptive MPI features? We can probably assume for now that the parameter server runs on a single (multi-threaded) node that does not fail / is not pre-empted.
