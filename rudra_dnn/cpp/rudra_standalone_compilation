@@ -1,0 +1,1 @@
+g++ -std=c++0x -O3 -w -Wno-strict-aliasing -fopenmp -DHAS_TR1_RANDOM -DGEMM -DNDEBUG -I/home/vj0/rudra-dist/rudra_dnn/cpp/src -I/home/vj0/rudra-dist/rudra_dnn/cpp/hdf5/include src/rudra/RudraStandalone.cpp lib/libcnn.a   -L/home/vj0/rudra-dist/rudra_dnn/cpp/hdf5/lib -lhdf5 -lhdf5_cpp -lblas -o rudra_standalone

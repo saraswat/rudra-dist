@@ -1,0 +1,237 @@
+# Invocation:
+#      make <target> OPT=<opt> ARCH=<architecture> PROFILE=yes
+# Examples:
+#	make OPT=-g ARCH=linux PROFILE=yes  # debuggable executable, g++ compiler,                     profiling information
+#	make                                # optimized with -O3,    compiler determined from `uname`, no profiling information
+#
+#
+# POZOR! ATTENTION! VORSICHT! XIAOXIN! KIKEN! SAWDHAN!
+#
+# To use a particular compiler, make sure that /usr/share/openmpi/mpic++-wrapper-data.txt
+# specifies that compiler=....
+# Merely setting CXX does not work
+
+
+CNNSRC := src/rudra/MLPparams.cpp src/rudra/Network.cpp $(wildcard src/rudra/io/*.cpp) $(wildcard src/rudra/math/*.cpp) $(wildcard src/rudra/platform/*.cpp) $(wildcard src/rudra/util/*.cpp)
+CNNOBJS = $(CNNSRC:%.cpp=%.o)
+MPISRC := $(wildcard src/rudra/mpi/*.cpp) $(wildcard src/rudra/learner/*.cpp) $(wildcard src/rudra/param/*.cpp) $(wildcard src/rudra/sample/*.cpp) $(wildcard src/rudra/stat/*.cpp)
+MPIOBJS = $(MPISRC:%.cpp=%.o)
+PUBLICHEADERS :=  rudra/Network.h rudra/MLPparams.h rudra/io/SampleClient.h rudra/io/BinarySampleReader.h rudra/io/CharBinarySampleReader.h rudra/io/CharBinarySampleSeqReader.h rudra/io/BinarySampleSeqReader.h rudra/io/BinarySampleMFReader.h rudra/io/BinarySampleMFSeqReader.h rudra/io/GPFSSampleClient.h rudra/io/SampleReader.h rudra/io/UnifiedBinarySampleReader.h rudra/io/UnifiedBinarySampleSeqReader.h rudra/math/*.h rudra/layers/*.h rudra/util/*.h rudra/cuda/*.h rudra/platform/*.h rudra/platform/*.tcc
+HEADERDIR := $(CURDIR)/include
+LIBDIR := lib
+CNNLIB := $(LIBDIR)/libcnn.a
+#USE_GCC := YES
+
+RUDRA_HOME ?= $(CURDIR)/..
+# run ./install_hdf5.sh to build HDF5 under current directory
+HDF5_INCLUDE_PATH ?= $(CURDIR)/hdf5/include
+HDF5_LIB_PATH ?= $(CURDIR)/hdf5/lib
+OPENBLAS_LIB_PATH ?= /usr/lib64
+
+
+# If there is a cuda instalation, compile cuda programs
+ifdef RUDRA_CUDA
+CUDALIB   = $(LIBDIR)/libcuda.a
+CUDAINC   = $(CUDA_PATH)/include
+CUDAFLAGS = -I$(CUDAINC) -DRUDRA_CUDA
+CUDASRC   = $(wildcard src/rudra/cuda/*.cu)
+CUDAOBJS  = $(CUDASRC:%.cu=%.o)
+
+# Allow various cuda versions
+GENCODE_SM20    := -gencode arch=compute_20,code=sm_20
+GENCODE_SM30    := -gencode arch=compute_30,code=sm_30 
+GENCODE_SM35    := -gencode arch=compute_35,code=sm_35
+GENCODE_FLAGS   := $(GENCODE_SM10) $(GENCODE_SM20) $(GENCODE_SM30) $(GENCODE_SM35)
+
+# extend gcc flags to allow cuda.h
+CXXFLAGS += $(CUDAFLAGS)
+#extend gcc loader flags to load cuda libraries
+LDFLAGS  += -L$(CUDA_PATH)/lib64 -lcudart -lcublas
+endif
+
+# If no optimization parameter set then do optimize 
+# as opposed to compile for debugging
+OPT ?= -O3
+
+
+# Use the architecture of host machine to determine what compiler to use.
+# Set CXX and other environment variables expressing the choice.
+# Unfortunately, mpicxx does not use CXX to determine its compiler;
+# instead it uses the setitng inside mpic++-wrapper-data.txt.
+# Therefore you can use the parameter ARCH to force architecture consistent 
+# with mpic++-wrapper-data.txt.
+
+ifdef ARCH
+    arch=$(ARCH)
+else
+    arch=$(shell uname -p)
+    ifeq ($(arch),unknown)
+        arch=$(shell uname -m)
+    endif
+endif
+
+ifeq ($(arch),ppc64)
+    # POWER7 (inc. p775)
+	CXX = xlC_r
+    BLASLIB ?= ESSL
+endif
+
+ifeq ($(arch),ppc64le)
+    # POWER8 LE
+    CXX = xlC_r
+    BLASLIB ?= ESSL531
+endif
+
+ifeq ($(arch),s390x)
+    # system Z
+    BLASLIB = ATLAS_zEC12
+    ATLAS_LIB_PATH=/usr/local/atlas_zEC12/lib64
+    ATLAS_INCLUDE_PATH=/usr/local/atlas_zEC12/include
+endif
+
+hs=$(shell hostname)
+ifneq (,$(findstring dcc,$(hs)))
+    # for deep computing cluster
+    BLASLIB=ATLAS
+endif
+
+
+# compiler-specific flags
+ifeq ($(CXX),xlC_r)
+    CXXFLAGS += $(OPT) -q64 -qsmp
+else
+    # assume g++
+    CXXFLAGS += -std=c++0x $(OPT) -w -Wno-strict-aliasing -fopenmp -DHAS_TR1_RANDOM
+
+    ifneq (,$(findstring -g,$(OPT))) 
+         # generate information for printing backtrace
+         CXXFLAGS += -rdynamic   
+    endif
+endif
+
+
+CXXFLAGS += -DGEMM -DNDEBUG -I$(RUDRA_HOME)/cpp/src -I$(HDF5_INCLUDE_PATH)
+#CXXFLAGS += -DGEMM -I$(RUDRA_HOME)/cpp/src -I$(HDF5_INCLUDE_PATH)
+LDFLAGS += -L$(HDF5_LIB_PATH) -lhdf5 -lhdf5_cpp
+
+
+
+# BLAS libraries
+ifeq ($(BLASLIB),ESSL)
+    # p775
+    CXXFLAGS += $(OPT) -q64 -qsmp -D__essl__
+    LDFLAGS += -L/usr/lib64 -L/opt/ibmcmp/xlf/14.1/lib64 -lesslsmp6464 -L/opt/ibmcmp/xlsmp/3.1/lib64/ -lxlfmath -lxl -lxlf90_r -lxlsmp -lpthread
+else
+    ifeq ($(BLASLIB),ESSL531)
+          # ESSL 5.3.1
+          CXXFLAGS += $(OPT) -q64 -qsmp -D__essl531__ -D__essl__
+          LDFLAGS += -L/usr/lib64 -L/opt/ibm/xlf/15.1.1/lib -lesslsmp6464 -L/opt/ibm/xlsmp/4.1.2/lib/ -lxlfmath -lxl -lxlf90_r -lxlsmp -lpthread
+    else
+        ifeq ($(BLASLIB),ESSL532)
+           # ESSL 5.3.2 beta
+           CXXFLAGS += $(OPT) -q64 -qsmp -D__essl532__ -D__essl__
+           LDFLAGS += -L/usr/lib64 -L/opt/ibm/xlf/15.1.1/lib -lesslsmp6464 -L/usr/local/cuda/lib64 -lcublas -lcudart -L/opt/ibm/xlsmp/4.1.2/lib/ -lxlfmath -lxl -lxlf90_r -lxlsmp -lpthread -R/usr/local/cuda/lib64
+        else
+            ifeq ($(BLASLIB),OpenBLAS)
+            # x86
+                CXXFLAGS += -I$(OPENBLAS_INCLUDE_PATH)
+                LDFLAGS += -L$(OPENBLAS_LIB_PATH) -lopenblas
+            else
+                ifeq ($(BLASLIB),ATLAS)
+	        # deep computing cluster	
+                    LDFLAGS += -L$(ATLAS_LIB_PATH) -lcblas
+                else
+                    ifeq ($(BLASLIB),ATLAS_zEC12)
+                        CXXFLAGS += -I$(ATLAS_INCLUDE_PATH)
+                        LDFLAGS+= -L$(ATLAS_LIB_PATH) -lcblas.zEC12 -latlas.zEC12
+                    else
+		     # assume Netlib BLAS
+                        LDFLAGS += -lblas
+                    endif
+                 endif
+            endif
+        endif
+    endif
+endif
+
+
+PROFILE ?=
+ifdef PROFILE
+	# enable CPU profiling with google-perftools
+    LDFLAGS += -Wl,--no-as-needed -lprofiler -Wl,--as-needed
+endif
+
+
+# All Target
+all: rudra rudra_inference rudra_standalone rudra_devTest rudra_diff rudra_mpi_test
+
+src/rudra/mpi/%.o:	src/rudra/mpi/%.cpp
+	mpicxx $(CXXFLAGS) -c $< -o $@
+	
+src/rudra/learner/%.o:	src/rudra/learner/%.cpp
+	mpicxx $(CXXFLAGS) -c $< -o $@
+	
+src/rudra/param/%.o:	src/rudra/param/%.cpp
+	mpicxx $(CXXFLAGS) -c $< -o $@
+	
+src/rudra/sample/%.o:	src/rudra/sample/%.cpp
+	mpicxx $(CXXFLAGS) -c $< -o $@
+	
+src/rudra/stat/%.o:	src/rudra/stat/%.cpp
+	mpicxx $(CXXFLAGS) -c $< -o $@
+	
+src/rudra/cuda/%.o:	src/rudra/cuda/%.cu
+	nvcc  $(CUDAFLAGS) $(GENCODE_FLAGS) -I$(RUDRA_HOME)/cpp/src $(OPT) -c $< -o $@
+
+rudra:	$(CNNLIB) $(MPIOBJS) src/rudra/RudraDist.cpp $(CUDALIB)
+	mpicxx $(CXXFLAGS) src/rudra/RudraDist.cpp $(MPIOBJS) $(CNNLIB)  $(CUDALIB) $(LDFLAGS) -o "$@"
+	
+rudra_standalone:	$(CNNLIB) src/rudra/RudraStandalone.cpp $(CUDALIB)
+	$(CXX) $(CXXFLAGS) src/rudra/RudraStandalone.cpp $(CNNLIB)  $(CUDALIB) $(LDFLAGS) -o "$@"
+	echo "$(CXX) $(CXXFLAGS) src/rudra/RudraStandalone.cpp $(CNNLIB)  $(CUDALIB) $(LDFLAGS) -o $@" >rudra_standalone_compilation
+
+rudra_inference: $(CNNLIB) src/rudra/RudraInference.cpp $(CUDALIB)
+	$(CXX) $(CXXFLAGS) src/rudra/RudraInference.cpp  $(CNNLIB) $(CUDALIB) $(LDFLAGS) -o "$@"
+
+rudra_devTest: $(CNNLIB)   src/rudra/RudraDevTest.cpp  $(CUDALIB)
+	$(CXX) $(CXXFLAGS) src/rudra/RudraDevTest.cpp $(CNNLIB)  $(CUDALIB)  $(LDFLAGS) -o "$@"
+
+rudra_diff: $(CNNLIB) src/rudra/RudraDiff.cpp
+	$(CXX) $(CXXFLAGS) src/rudra/RudraDiff.cpp $(CNNLIB) $(LDFLAGS) -o "$@"
+
+rudra_mpi_test: $(CNNLIB) $(MPIOBJS) src/rudra/MPIUtilTest.cpp $(CUDALIB)
+	mpicxx $(CXXFLAGS) src/rudra/MPIUtilTest.cpp $(MPIOBJS) $(CNNLIB) $(CUDALIB) $(LDFLAGS) -o "$@"
+
+
+
+	
+$(CNNLIB):	$(CNNOBJS) $(LIBDIR) copy_headers
+	$(AR) rs $@ $(CNNOBJS)
+
+$(CUDALIB):	$(CUDAOBJS) $(LIBDIR) copy_headers
+	$(AR) rs $@ $(CUDAOBJS)
+	
+copy_headers:	$(HEADERDIR)
+	cd src && cp --parents $(PUBLICHEADERS) $(HEADERDIR)/.
+	
+$(HEADERDIR):
+	mkdir -p $(HEADERDIR)
+	
+$(LIBDIR):
+	mkdir -p $(LIBDIR)
+
+TESTSRC := $(wildcard test/rudra/*/*.cpp)
+TESTS = $(TESTSRC:%.cpp=%)
+
+% :	%.cpp
+	$(CXX) $(CXXFLAGS)
+
+test:	$(CNNLIB) $(TESTS)
+	
+
+clean:
+	-$(RM) rudra rudra_standalone rudra_inference rudra_devTest $(CNNOBJS) $(CUDAOBJS)  $(MPIOBJS); $(RM) -r $(HEADERDIR)/* $(LIBDIR)/*
+	-@echo ' '
+
+.PHONY: all clean copy_headers
+.SECONDARY:

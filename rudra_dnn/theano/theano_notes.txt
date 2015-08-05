@@ -1,0 +1,4 @@
+Theano code is in c, and invokes python to implement the train / set_parameter / get_parameter functions; these functions
+access the user code written in Theano that defines the network. 
+
+Considered making a shared library (.so) but stuck with a statically linked library (.a).
