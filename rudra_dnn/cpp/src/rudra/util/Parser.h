@@ -31,9 +31,7 @@ namespace convert{
 	static T string_to_T( const std::string& val){
 		std::istringstream istr(val);
 		T retval;
-		if(!(istr >> retval)){
-			rudra::Logger::logFatal("Convert::string_to_T()::bad input " + val);
-		}
+		RUDRA_CHECK(static_cast<bool>(istr >> retval), "Convert::string_to_T()::bad input " << val);
 
 		return retval;
 	}

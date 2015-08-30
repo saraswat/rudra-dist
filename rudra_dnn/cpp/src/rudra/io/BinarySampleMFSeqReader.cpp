@@ -3,11 +3,11 @@
  */
 
 #include "rudra/io/BinarySampleMFSeqReader.h"
+#include "rudra/io/BinaryMatrixReader.h"
 #include "rudra/util/RudraRand.h"
 #include "rudra/util/MatrixContainer.h"
 #include "rudra/MLPparams.h"
 #include <vector>
-#include <algorithm>
 
 namespace rudra {
 BinarySampleMFSeqReader::BinarySampleMFSeqReader(std::string sampleFileName,
@@ -31,22 +31,15 @@ void BinarySampleMFSeqReader::readLabelledSamples(size_t numSamples,
 	    //std::cout<<"[idx] "<<i<<" "<<idx[i]<<std::endl;
 	}
 	// binary format is transposed
-	MatrixContainer<float> tX(MLPparams::_batchSize, MLPparams::_numInputDim);
-	MatrixContainer<float> tY(MLPparams::_batchSize, MLPparams::_labelDim); // labelDim May 15, 2015
 	std::string myXFile, myYFile;
 	size_t myXIdx, myYIdx;
 	for (size_t i = 0; i < numSamples; ++i) {
 	    lookupTab(xTab, idx[i], myXFile, myXIdx);
 	    lookupTab(yTab, idx[i], myYFile, myYIdx);
 	    assert(myXIdx == myYIdx);
-	    readBinMat<float>(tX.buf + i * sizePerImg, myXIdx, 1, sizePerImg, myXFile);
-	    readBinMat<float>(tY.buf + i * sizePerLabel, myYIdx, 1, sizePerLabel, myYFile);
+	    readRecordFromBinMat(X.buf + i * sizePerImg, myXIdx, sizePerImg, myXFile);
+	    readRecordFromBinMat(Y.buf + i * sizePerLabel, myYIdx, sizePerLabel, myYFile);
 	}
-	X = tX;
-	Y = tY;
-
-//	tX.transposeTo(X);
-//	tY.transposeTo(Y);
 }
 
   

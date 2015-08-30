@@ -6,8 +6,10 @@
  */
 
 #include "rudra/io/UnifiedBinarySampleSeqReader.h"
+#include "rudra/io/BinaryMatrixReader.h"
 #include "rudra/util/MatrixContainer.h"
 #include "rudra/MLPparams.h"
+#include "rudra/util/Logger.h"
 #include <vector>
 #include <algorithm>
 
@@ -46,20 +48,16 @@ void UnifiedBinarySampleSeqReader::readLabelledSamples(size_t numSamples, Matrix
 	// step 2 , retrieve data
 	switch(tdFT){
 		case FLOAT:{
-			MatrixContainer<float> tX(MLPparams::_batchSize, MLPparams::_numInputDim);
-			for(size_t i = 0; i < numSamples; ++i){
-				readBinMat<float>(tX.buf + i * sizePerImg, idx[i], 1, sizePerImg, tdFile);
-			}
-			X = tX;
+			assert(X.dimM >= numSamples);
+			assert(X.dimN == MLPparams::_numInputDim);
+			readRecordsFromBinMat(X.buf, numSamples, idx, sizePerImg, tdFile);
 			break;
 		}
 
 		case CHAR:{
-			MatrixContainer<uint8> tX(MLPparams::_batchSize, MLPparams::_numInputDim);
-			for(size_t i = 0; i < numSamples; ++i){
-				readBinMat<uint8>(tX.buf + i * sizePerImg, idx[i], 1, sizePerImg, tdFile);
-			}
-			X = tX;
+			MatrixContainer<uint8> tempX(MLPparams::_batchSize, MLPparams::_numInputDim);
+			readRecordsFromBinMat(tempX.buf, numSamples, idx, sizePerImg, tdFile);
+			X = tempX; // convert from uint8 to float
 			break;
 		}
 
@@ -81,20 +79,18 @@ void UnifiedBinarySampleSeqReader::readLabelledSamples(size_t numSamples, Matrix
 
 	switch(tlFT){
 		case FLOAT:{
-			MatrixContainer<float> tY(MLPparams::_batchSize, MLPparams::_labelDim);
-			for(size_t i = 0; i < numSamples; ++i){
-				readBinMat<float>(tY.buf + i * sizePerLabel, idx[i], 1, sizePerLabel, tlFile);
-			}
-			Y = tY;
+			assert(Y.dimM >= numSamples);
+			assert(Y.dimN == MLPparams::_labelDim);
+			readRecordsFromBinMat(Y.buf, numSamples, idx, sizePerLabel, tlFile);
 			break;
 		}
 
 		case CHAR:{
-			MatrixContainer<uint8> tY(MLPparams::_batchSize, MLPparams::_labelDim);
-			for(size_t i = 0; i < numSamples; ++i){
-				readBinMat<uint8>(tY.buf + i * sizePerLabel, idx[i], 1, sizePerLabel, tlFile);
-			}
-			Y = tY;
+			assert(Y.dimM >= numSamples);
+			assert(Y.dimN == MLPparams::_labelDim);
+			MatrixContainer<uint8> tempY(MLPparams::_batchSize, MLPparams::_labelDim);
+			readRecordsFromBinMat(tempY.buf, numSamples, idx, sizePerLabel, tlFile);
+			Y = tempY; // convert from uint8 to float
 			break;
 		}
 

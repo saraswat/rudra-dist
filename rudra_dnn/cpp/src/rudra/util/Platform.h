@@ -16,14 +16,32 @@
  namespace rudra {
 
   typedef enum {
-    CPU = 0,
-    GPU,
+    GPU0 = 0,
+    GPU1,
+    GPU2,
+    GPU3,
+    GPU4,
+    GPU5,
+    GPU6,
+    GPU7,
+    GPU8,
+    GPU9,
+    GPU10,
+    GPU11,
+    GPU12,
+    GPU13,
+    GPU14,
+    GPU15,
+    CPU,
     PLATFORM_NUM
   } Platform;
 
 
   const char *platformToStr(Platform platform);
   Platform    strToPlatform(std::string s);
+  int         platformToDeviceNumber(Platform platform);
+  bool        platformIsGpu(Platform platform);
+  Platform    deviceNumberToPlatform(int d);
   void        platformCheck(Platform platform) throw (Exception);
 
 } /* namespace rudra */

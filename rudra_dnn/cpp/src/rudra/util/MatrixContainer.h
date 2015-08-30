@@ -538,7 +538,7 @@ void MatrixContainer<T>::writeBinMat (std::string s) const{
     }
     return res;
   }
-  template <class T>
+  /*  template <class T>
     MatrixContainer<T> readBinMat (std::string s) {
     std::ifstream f1(s.c_str(), std::ios::in | std::ios::binary);
     if(!f1){
@@ -560,7 +560,7 @@ void MatrixContainer<T>::writeBinMat (std::string s) const{
       exit(EXIT_FAILURE);		
 
     }
-		
+
     MatrixContainer<T> res(r,c,_ZEROS);
     f1.read((char*)res.buf,sizeof(T)*r*c);
 
@@ -599,7 +599,9 @@ void MatrixContainer<T>::writeBinMat (std::string s) const{
     }
     return res;
   }
-  template <class T>
+  */
+
+  /*  template <class T>
     inline void readBinMat (T * buf, size_t idx, size_t stride, size_t len, std::string fileName){
     // stride = number of rows to be read
     // len = col length to be read
@@ -667,6 +669,6 @@ void MatrixContainer<T>::writeBinMat (std::string s) const{
 
     }
   }
-
+  */
  } /* namespace rudra */
 #endif /* RUDRA_MATH_MATRIXCONTAINER_H_ */

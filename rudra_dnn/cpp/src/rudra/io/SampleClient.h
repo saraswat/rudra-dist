@@ -16,7 +16,7 @@
 #define GPFS_MF 4 // multi-file for training data and test data, treat trainData as the file that contains a list
                   // training data files and etc 
 namespace rudra {
-
+  template<class T> class MatrixContainer;
 class SampleClient {
 public:
 	virtual void getLabelledSamples(MatrixContainer<float> &samples,

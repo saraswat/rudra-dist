@@ -42,7 +42,7 @@ namespace rudra {
                            bool  e = (expr);                                                                        \
                            if (!e) {                                                                                \
                              std::ostringstream msgStream; msgStream << msg;                                        \
-                             Checking::reportError(Checking::USER_ERROR, msgStream.str(), __FILE__, __LINE__);   \
+			     rudra::Checking::reportError(rudra::Checking::USER_ERROR, msgStream.str(), __FILE__, __LINE__); \
                            }                                                                                        \
                          }
 
@@ -50,10 +50,19 @@ namespace rudra {
                            bool  e = (expr);                                                                        \
                            if (!e) {                                                                                \
                              std::ostringstream msgStream; msgStream << "ASSERT " << msg;                           \
-                             Checking::reportError(Checking::ASSERT, msgStream.str(), __FILE__, __LINE__);          \
+			     rudra::Checking::reportError(rudra::Checking::ASSERT, msgStream.str(), __FILE__, __LINE__); \
                            }                                                                                        \
                          }
 
 
+// In contrast to RUDRA_CHECK(), RUDRA_ASSERT() must be given an expression without side-effect,
+// because its evaluation is turned off when NDEBUG
+#ifdef NDEBUG  
+#define RUDRA_ASSERT(expr, msg) // do nothing
+#else
+#define RUDRA_ASSERT(expr, msg) RUDRA_CHECK(expr, msg)
+#endif
+
 #define RUDRA_VAR(expr) "  " << #expr << " = " << (expr)
 #endif /* RUDRA_UTIL_CHECKING_H_ */
+

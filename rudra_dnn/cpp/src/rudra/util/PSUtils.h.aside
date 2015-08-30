@@ -1,0 +1,49 @@
+/*
+ * PSUtils.h
+ * created to do param server utility functions,
+ * (1) apply update, after summing up the gradients
+ *  Created on: Jul 17, 2015
+ *      Author: weiz
+ */
+
+#ifndef PSUTILS_H_
+#define PSUTILS_H_
+
+
+#include <cstdlib>
+#include <string>
+#include <vector>
+#include <fstream>
+namespace rudra {
+
+class Network;
+enum SolverType{ /* added on July 16, 2015*/
+	SGD,
+	ADAGRAD
+};
+class PSUtils {
+public:
+	PSUtils(Network *nn, SolverType solverType);
+	~PSUtils();
+	Network *nn;
+	SolverType solverType;
+	size_t networkSize;
+	float *adagradNorm;
+	void applyUpdateAfterSum(float *gradMsg, size_t numLearner);
+	void adaNormalizeGradients(const size_t networkSize, float * adagradNorm, float * parameterUpdates);
+	void chkptAdaGrad(std::string adaFile);
+	void restartAdaGrad(std::string adaFile);
+	long ts; // timestamp of the weights, started from 1
+	long getTS();
+	void appendUpdateTSVec(float * gradOffSet);
+private:
+	std::vector<int> tsVecClock; // each element is the ts of which learner computes gradient based on
+	void logTSVecPerUpdate();
+	std::string logFileName;
+	std::ofstream logStream; //create that file
+};
+
+}
+
+
+#endif /* PSUTILS_H_ */

@@ -1,15 +1,25 @@
 #include "rudra/MLPparams.h"
 #include "rudra/io/SampleClient.h"
+#include "rudra/util/Logger.h"
+#include "rudra/util/Parser.h"
 #include "rudra/util/Tracing.h"
+#include <algorithm>
+//#include "rudra/platform/Misc.h"
 #include <iomanip>
 #include <iostream>
+#include <cmath>
 #include <cstdlib>
+#include <cstring>
+
 namespace rudra {
 const std::string MLPparams::paramList[] = { "trainData", "trainLabels",
 		"testData", "testLabels", "layerCfgFile", "testInterval", "meanFile", "chkptInterval", "numTrainSamples", "numTestSamples", "numInputDim",
-                "numClasses", "numEpochs", "batchSize", "alphaDecay", "platform" };
+					     "numClasses", "numEpochs", "batchSize", // "platform", 
+					     "learningSchedule", "gamma", "beta", "lrFile", "epochs" };
 
   const int MLPparams::paramNum = sizeof(MLPparams::paramList) / sizeof(*MLPparams::paramList);
+
+
 
   // set defaults
   uint32      MLPparams::_numTrainSamples = RUDRA_DEFAULT_INT;
@@ -19,7 +29,6 @@ const std::string MLPparams::paramList[] = { "trainData", "trainLabels",
   uint32      MLPparams::_numEpochs       = RUDRA_DEFAULT_INT;
   uint32      MLPparams::_batchSize       = RUDRA_DEFAULT_INT;
   uint32      MLPparams::_testInterval    = RUDRA_DEFAULT_INT;
-  float       MLPparams::_alphaDecay      = RUDRA_DEFAULT_FLOAT;
   std::string MLPparams::_trainData       = RUDRA_DEFAULT_STRING;
   std::string MLPparams::_trainLabels     = RUDRA_DEFAULT_STRING;
   std::string MLPparams::_testData        = RUDRA_DEFAULT_STRING;
@@ -33,20 +42,29 @@ const std::string MLPparams::paramList[] = { "trainData", "trainLabels",
   uint32      MLPparams::_epoch           = RUDRA_DEFAULT_INT;
   uint32      MLPparams::_mb              = RUDRA_DEFAULT_INT;
 
+  // learning rate related parameters
+  std::string MLPparams::LearningRateMultiplier::_lrFile = RUDRA_DEFAULT_STRING;
+  float		  MLPparams::LearningRateMultiplier::_beta   = 1.0f;
+  float		  MLPparams::LearningRateMultiplier::_gamma  = 1.0f;
+  std::string MLPparams::LearningRateMultiplier::_schedule = "constant";
+  std::vector<int> 	 MLPparams::LearningRateMultiplier::_epochs;
+  std::vector<float> MLPparams::LearningRateMultiplier::_lr;
+
   bool        MLPparams::_isInference     = false;
+  //  Platform    MLPparams::_platform        = CPU;
 
   // Parameters from command line are initialized to defaults to take effect if no value provided
   std::string  MLPparams::_givenFileName   = RUDRA_DEFAULT_STRING;   // -f (FIXME: split into cfg and network files)
   std::string  MLPparams::_restartFileName = RUDRA_DEFAULT_STRING;   // -r
   std::string  MLPparams::_jobID           = RUDRA_DEFAULT_STRING;   // -j 
-  int          MLPparams::_randSeed        = 12345;      	     // -s (to initialize random number generator)
+  int          MLPparams::_randSeed        = 12345;      			 // -s (to initialize random number generator)
   int          MLPparams::_sampleClient    = SC_NULL;                // -sc
-
   float        MLPparams::_lrMult          = 1.0;                    // -mul
-  std::string  MLPparams::_meanFile	   = RUDRA_DEFAULT_STRING;   // -meanFile
-  std::string  MLPparams::_solver	   = RUDRA_DEFAULT_STRING;   // type of solved: adagrad or sgd
-  float	       MLPparams::_mom	           = RUDRA_DEFAULT_INT;	     // momentum. overrides values in .cnn
-  int	       MLPparams::_printInterval   = 1;			     // -printInterval : how often to print to the interval
+  std::string  MLPparams::_allowedGPU	   = RUDRA_DEFAULT_STRING;   // -gpu     default if no list given
+  std::string  MLPparams::_meanFile		   = RUDRA_DEFAULT_STRING;   // -meanFile
+  std::string  MLPparams::_solver		   = RUDRA_DEFAULT_STRING;	 // type of solved: adagrad or sgd
+  float		   MLPparams::_mom			   = RUDRA_DEFAULT_INT;	 	 // momentum. overrides values in .cnn
+  int		   MLPparams::_printInterval   = 1;						 // -printInterval : how often to print to the interval
 
   keyMap MLPparams::MLPCfg;		// stores MLP config
 
@@ -60,14 +78,19 @@ void MLPparams::setMLPdefaults() {
 	MLPparams::MLPCfg["layerCfgFile"] 	= MLPparams::_rudraHome + "examples/mnist.cnn";
 	MLPparams::MLPCfg["testInterval"]	= "1";
 	MLPparams::MLPCfg["chkptInterval"]	= "10";
-	MLPparams::MLPCfg["numTrainSamples"]	= "60000";
-	MLPparams::MLPCfg["numTestSamples"]     = "10000";
-	MLPparams::MLPCfg["numInputDim"]        = "784";
+	MLPparams::MLPCfg["numTrainSamples"]= "60000";
+	MLPparams::MLPCfg["numTestSamples"] = "10000";
+	MLPparams::MLPCfg["numInputDim"]    = "784";
 	MLPparams::MLPCfg["numClasses"]		= "10";
 	MLPparams::MLPCfg["numEpochs"]		= "100";
 	MLPparams::MLPCfg["batchSize"] 		= "100";
-	MLPparams::MLPCfg["alphaDecay"]		= "0.95";       
 
+
+	MLPparams::MLPCfg["learningSchedule"] = "constant";
+	MLPparams::MLPCfg["gamma"]			= "1";
+	MLPparams::MLPCfg["beta"]			= "1";
+	MLPparams::MLPCfg["lrFile"]			= MLPparams::LearningRateMultiplier::_lrFile;
+	MLPparams::MLPCfg["epochs"]			= "0";
 
 }
 bool MLPparams::setParam(keyMap inp, std::string param) {
@@ -101,6 +124,59 @@ void MLPparams::setRudraHome(){
 		if(MLPparams::_rudraHome.at(MLPparams::_rudraHome.length() - 1) != '/' ){
 				MLPparams::_rudraHome.append("/");
 		}
+
+
+}
+
+void MLPparams::setLearningRateMultiplierSchedule(){
+
+	std::string schedule = MLPparams::LearningRateMultiplier::_schedule;
+	float gamma 		 = MLPparams::LearningRateMultiplier::_gamma;
+	float beta 			 = MLPparams::LearningRateMultiplier::_beta;
+
+	if(std::strcmp(schedule.c_str(),"constant") == 0){
+		// constant multiplier
+		for(int i = 0; i < MLPparams::_numEpochs; ++i){
+			MLPparams::LearningRateMultiplier::_lr.push_back(1.0f);
+		}
+
+	}else if(std::strcmp(schedule.c_str(),"exponential") == 0){
+		// exponential multiplier
+		// m(i) = gamma^i;
+		MLPparams::LearningRateMultiplier::_lr.push_back(1.0f);
+		for(int i = 1; i < MLPparams::_numEpochs; ++i){
+			MLPparams::LearningRateMultiplier::_lr.push_back(MLPparams::LearningRateMultiplier::_lr[i-1]
+			                                                 *gamma);
+		}
+	}else if(std::strcmp(schedule.c_str(),"power")== 0){
+			// exponential multiplier
+			// m(i) = 1/(1+i*gamma)^beta;
+
+		for(int i = 0; i < MLPparams::_numEpochs; ++i){
+			MLPparams::LearningRateMultiplier::_lr.push_back(1.0f/powf((1+i*gamma),beta));
+		}
+
+	}else if(std::strcmp(schedule.c_str(),"step")== 0){
+				// piecewise constant
+
+		float mul = 1.0f;
+		std::vector<int> epochs = MLPparams::LearningRateMultiplier::_epochs;
+		for(int i = 0; i < MLPparams::_numEpochs; ++i){
+
+			if(std::find(epochs.begin(), epochs.end(), i) != epochs.end())
+				mul *= gamma;
+
+			MLPparams::LearningRateMultiplier::_lr.push_back(mul);
+		}
+
+
+	}else{
+		// default: constant
+		for(int i = 0; i < MLPparams::_numEpochs; ++i){
+			MLPparams::LearningRateMultiplier::_lr.push_back(1.0f);
+		}
+	}
+
 
 
 }
@@ -139,13 +215,29 @@ void MLPparams::initMLPparams(std::string S) {
 			MLPparams::MLPCfg["numEpochs"]);
 	MLPparams::_batchSize = convert::string_to_T<uint32>(
 			MLPparams::MLPCfg["batchSize"]);
-	MLPparams::_alphaDecay = convert::string_to_T<float>(
-			MLPparams::MLPCfg["alphaDecay"]);
 
+	MLPparams::LearningRateMultiplier::_schedule = MLPparams::MLPCfg["learningSchedule"];
 
-        // If platform not specified then _platform retains initial value
-	//        try {MLPparams::_platform = strToPlatform(MLPparams::MLPCfg.at("platform"));}
-	//        catch (...) {}
+	MLPparams::LearningRateMultiplier::_gamma = convert::string_to_T<float>(
+				MLPparams::MLPCfg["gamma"]);
+
+	MLPparams::LearningRateMultiplier::_beta = convert::string_to_T<float>(
+				MLPparams::MLPCfg["beta"]);
+
+	MLPparams::LearningRateMultiplier::_lrFile = MLPparams::MLPCfg["lrFile"];
+
+	std::stringstream ss;
+	std::string temp;
+	ss << MLPparams::MLPCfg["epochs"];
+	while(!ss.eof()){
+		getline(ss,temp,',');
+		MLPparams::LearningRateMultiplier::_epochs.push_back(convert::string_to_T<int>(temp));
+	}
+
+	// If platform not specified then _platform retains initial value
+	// vj -- commenting out platform functionality
+	//	try {MLPparams::_platform = findPlatform(MLPparams::MLPCfg.at("platform"));}
+	//	catch (...) {}
 
 	//sanity check
 	if (MLPparams::_numTrainSamples == 0)
@@ -177,7 +269,7 @@ void MLPparams::initMLPparams(std::string S) {
 				"MLPparams::initMLPparams()::setting testInterval = numEpochs");
 	}
 	
-
+	MLPparams::setLearningRateMultiplierSchedule();
 
 }
 
@@ -210,12 +302,12 @@ void MLPparams::setWD() {
         stat(dirName.c_str(),&st);
         if (stat(dirName.c_str(), &st) == -1){
 
-        	rudra::Logger::logInfo("MLPparams::setWD::Creating working directory in " + dirName + "  ...");
+        	rudra::Logger::logInfo("MLPparams::setWD: Creating working directory in " + dirName + "  ...");
         	std::string command = "mkdir -p " + dirName;
         	retval = system(command.c_str()); // system call to execute the command
 
 	}else{
-		rudra::Logger::logFatal("MLPparams::setWD::" + dirName + " already exists. Launch again with new job_id");
+		rudra::Logger::logFatal("MLPparams::setWD: Directory " + dirName + " already exists. Launch again with new job_id");
 	}
         
 	MLPparams::_logDir = dirName;
@@ -317,6 +409,7 @@ void MLPparams::readBinHeader(std::string fileName, int& r, int& c){
         else if (flag == "-s")   		MLPparams::_randSeed        = convert::string_to_T<int>(  val1);
         else if (flag == "-sc")  		MLPparams::_sampleClient    = convert::string_to_T<int>(  val1);
         else if (flag == "-mul") 		MLPparams::_lrMult          = convert::string_to_T<float>(val1);
+        else if (flag == "-gpu") 	        MLPparams::_allowedGPU      =                             val1;
         else if (flag == "-meanFile") 	MLPparams::_meanFile		= val1;
         else if (flag == "-solver") 	MLPparams::_solver 			= val1;
         else if (flag == "-mom")		MLPparams::_mom				= convert::string_to_T<float>(val1);

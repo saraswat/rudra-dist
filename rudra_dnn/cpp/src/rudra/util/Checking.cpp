@@ -64,7 +64,7 @@ namespace rudra {
     msgStream << " -- " << msg;
     
     if (errorKind != USER_ERROR) {
-      // Let user errors be caught and handled in a user friendly manner
+      // Let user errors be caught and handled in a user-friendly manner
       printf("%s\n", msgStream.str().c_str());
       printBackTrace();
     }

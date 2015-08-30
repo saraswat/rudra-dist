@@ -30,17 +30,45 @@
 #define EID_SER_WEIGHTS 15
 #define EID_SEND_WEIGHTS 16
 
+
 namespace rudra {
 static std::string LOG_SEP = ":";
 
+
 class PerfTimer {
-public:
+                  
+public:          
+  class Stats {
+  public:
+        float         minMs;
+        float         maxMs;
+        float         totalMs;
+        unsigned long totalTics;
+               
+        Stats();
+        Stats(const Stats &t);
+        Stats &operator=(const Stats &t);
+               
+        void addDelay(float delay);
+        void display(std::stringstream &msg,
+                     std::string        layerName,
+                     std::string        opName,
+                     bool               startLayer);
+               
+  };
+
+                 
+      
+  static Stats criticalStats;
+
   PerfTimer(int pid, int eid, std::string opName = "", std::string layerName = "");
 	PerfTimer();
         PerfTimer(const PerfTimer &t);
 	~PerfTimer();
         PerfTimer &operator=(const PerfTimer &t);
-        void setName(std::string opName, std::string layerName);
+        void setName(std::string opName, 
+                     std::string layerName);
+        void setCritical();
 	void tic();
 	void toc();
         void addDelay(float delay);
@@ -53,13 +81,13 @@ private:
 	struct timeval start;
 	struct timeval end;
                  
+        bool   isCritical;      // am I measuring an operation on critical path?
+                 
 
         std::string   opName;
         std::string   layerName;
-        float         minMs;
-        float         maxMs;
-        float         totalMs;
-        unsigned long totalTics;
+                 
+        Stats         stats;
                  
         static std::string lastLayerNamePrinted;
 };
