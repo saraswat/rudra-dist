@@ -110,7 +110,7 @@ copy_headers:	$(HEADERDIR)
 #	cd src && cp --parents $(PUBLICHEADERS) $(HEADERDIR)/.
 	rm -fr include
 	mkdir include include/rudra include/rudra/io include/rudra/util
-	cp src/rudra/MLPparams.h include/rudra
+	cp src/rudra/*.h include/rudra
 	cp src/rudra/io/*.h include/rudra/io/
 	cp src/rudra/util/*.h include/rudra/util/
 

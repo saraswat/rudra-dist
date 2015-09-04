@@ -15,14 +15,12 @@ extern "C" {
 // refactor later
 namespace xrudra {
   NativeLearner::NativeLearner() :
-    //    nn(NULL), 
     trainMBErr(-1.0f),
     trainSC(NULL),
+    testSC(NULL),
     NUM_LEARNER(0),
     NUM_MB_PER_EPOCH(0),
-    //    solverType(rudra::SGD),
     testErr(-1.0f),
-    theanoLearner(0)
   {}
 
 void NativeLearner::setMeanFile(std::string fn){
@@ -31,7 +29,7 @@ void NativeLearner::setMeanFile(std::string fn){
     rudra::MLPparams::_lrMult =2;
 }
 
-  void NativeLearner::initNativeLand(long id, const char* confName, 
+  void NativeLearner::initNativeLand(long id, const char* confName,
                                      long numLearner){
     // step 1 place id, seed random number generator
     pid = id;
@@ -43,7 +41,7 @@ void NativeLearner::setMeanFile(std::string fn){
     //    rudra::Logger::setLoggingLevel(INFO);
     cfgFile = std::string(confName);
     rudra::MLPparams::initMLPparams(cfgFile);
- 
+
     // step 3 init numLearner
     NUM_LEARNER = numLearner;
 
@@ -57,9 +55,7 @@ void NativeLearner::setMeanFile(std::string fn){
 	NUM_MB_PER_EPOCH = (q+1) * numLearner;
     }
 
-    
-    
-
+    // dlopen leaner library here and extract the required function pointers
 }
 /**
  * added on Aug 12, 2015, to support compatible weights update as in c++ code
@@ -102,7 +98,6 @@ void NativeLearner::initTrainSC(){
     sprintf(agentName, "LearnerAgent %6d", pid);
     trainSC = new rudra::GPFSSampleClient(std::string(agentName), false,
         new rudra::UnifiedBinarySampleReader(rudra::MLPparams::_trainData, rudra::MLPparams::_trainLabels, rudra::RudraRand(pid, pid)));
-    
 }
 
 /**
@@ -112,7 +107,7 @@ int NativeLearner::initNetwork(bool isReconciler){
   /* vj: This is the code for stitching in the Native Rudra learner
   nn = rudra::Network::readFromConfigFile(rudra::MLPparams::MLPCfg["layerCfgFile"]);
   nn->setMomentum(0.0);
-    nn->mulLearningRate(rudra::MLPparams::_lrMult*rudra::MLPparams::LearningRateMultiplier::_lr[0]); // to make sure the mul takes effect to begin with     
+    nn->mulLearningRate(rudra::MLPparams::_lrMult*rudra::MLPparams::LearningRateMultiplier::_lr[0]); // to make sure the mul takes effect to begin with
   if(nn != NULL){
     return 0;
   }else{
@@ -120,21 +115,38 @@ int NativeLearner::initNetwork(bool isReconciler){
     return 1;
   }
   */
-  theano_init();
-  return 0;
+  struct param *params = new struct param[rudra::MLPparams::MLPCfg.size()];
+  size_t i = 0;
+  int res;
+  if(params == NULL){
+    std::cerr<<"Could not allocate network parameter buffer"<<std::endl;
+    return 1;
+  }
+
+  for(keyMap::const_iterator it = rudra::MLPparams::MLPCfg.begin();
+      it != rudra::MLPparams::MLPCfg.end(); ++it, ++i){
+    params[i].key = it->first.c_str();
+    params[i].val = it->second.c_str();
+  }
+
+  res = leaner_init(&leaner_data, params, rudra::MLPparams::MLPCfg.size());
+
+  delete[] params;
+  return res;
 }
 
 int NativeLearner::getNetworkSize() {
-  //  return nn->networkSize;
-    return theano_networkSize();
+  return leaner_netsize(leaner_data);
 }
 
-void ensureLoaded(const  float *p) {
+/* This doesn't seem to be used anywhere
+void ensureLoaded(const float *p) {
   //  if (THEANO_LEARNER==0) {
   theano_set_param_entry((const void*)p);
   //  }
   // else do nothing
 }
+*/
 
 void NativeLearner::loadMiniBatch(){
     //sc->getLabelledSamples(rudra::MLPparams::_batchSize, minibatchX, minibatchY);
@@ -149,24 +161,21 @@ float NativeLearner::trainMiniBatch(){
 
     // TODO: return the Rail of the updates
     */
-    trainMBErr = theano_train_entry(rudra::MLPparams::_batchSize, 
-				    minibatchX.buf, rudra::MLPparams::_numInputDim, 
-				    minibatchY.buf, rudra::MLPparams::_numClasses);
-
+  trainMBErr = learner_train(rudra::MLPparams::_batchSize,
+                             minibatchX.buf, rudra::MLPparams::_numInputDim,
+                             minibatchY.buf, rudra::MLPparams::_numClasses);
+  return trainMBErr;
 }
 
 void NativeLearner::getGradients(float *updates) {
-  //	nn->serializeUpdates(updates);
-    theano_get_update_entry(updates);
-    return;
+  learner_getgrads(learner_data, updates);
 }
 
 void NativeLearner::accumulateGradients(float *updates) {
   /* Code for native Rudra learner
 	nn->accumulateUpdates(updates);
   */
-  // TODO: Arnaud -- need to include the corresponding Theano code here.
-
+  learner_accgrads(learner_data, updates);
 }
 
 /**
@@ -174,8 +183,8 @@ void NativeLearner::accumulateGradients(float *updates) {
  */
 void NativeLearner::updateLearningRate(long curEpochNum){
   // vj -- this is the native Rudra code.
-  // TODO: Arnaud -- needs to be updated for Theano,
   //    nn->mulLearningRate(rudra::MLPparams::_lrMult*rudra::MLPparams::LearningRateMultiplier::_lr[curEpochNum]); // compatible with update learning rate in the new scheme
+  leaner_updatelr(learner_data, rudra::MLPparams::_lrMult*rudra::MLPparams::LearningRateMultiplier::_lr[curEpochNum]); // compatible with update learning rate in the new scheme
 }
 
 
@@ -184,23 +193,22 @@ void NativeLearner::updateLearningRate(long curEpochNum){
 void NativeLearner::serializeWeights(float *weights){
   // Native Rudra learner code
   //    nn->serialize(weights);
-  // TODO: ARnaud -- check this code. THis needs to serialize weights into this given buffer.
-  theano_get_update_entry(weights);
+  learner_getweights(learner_data, weights);
 }
 
 void NativeLearner::deserializeWeights(float *weights){
   //    nn->deserialize(weights);
-    theano_set_param_entry(weights);
+  leaner_setweigths(learner_data, weights);
 }
 
 
 /**
- * assuming this call is always 
+ * assuming this call is always
  */
 
 #define UU_NOP_FLAG  1 // just plain sum update
 #define UU_SMB_FLAG 2 // finish a "super mb" (i.e., super mini-batch size)
-#define UU_EPOCH_FLAG 4 // finish the entire epoch (now the time to send a test to test server) 
+#define UU_EPOCH_FLAG 4 // finish the entire epoch (now the time to send a test to test server)
 
 
 /**
@@ -208,11 +216,10 @@ void NativeLearner::deserializeWeights(float *weights){
  */
 void NativeLearner::acceptGradients(float *weights, size_t numMB){
   //    psu->applyUpdateAfterSum(grad, numMB);
-  // TODO: Work with Arnaud to check that the Theano code is right.
   // This code needs to accept gradients generated remotely and use them
   // to update the weights.
   // TODO: This is where the update rule, e.g. adagrad is important.
-  theano_set_param_entry(weights); // TODO: Need to pass numMB.
+  learner_updweights(learner_data, weights, numMB);
 }
 
   // Needed for the tester.
@@ -269,7 +276,7 @@ float NativeLearner::testOneEpochSC(float *weights){
 	size_t numMB = std::max((size_t) 1, minibatchSize);
 	rudra::Matrix<float> testX, testY;
 	testErr = 0;
-	rudra::Network *nn = rudra::Network::readFromConfigFile(rudra::MLPparams::MLPCfg["layerCfgFile"]);  
+	rudra::Network *nn = rudra::Network::readFromConfigFile(rudra::MLPparams::MLPCfg["layerCfgFile"]);
 	      nn->deserialize(weights);
 	for (size_t i = 0; i < numMB; i++) {
 	  testSC->getLabelledSamples(testX, testY);

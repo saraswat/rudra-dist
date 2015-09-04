@@ -13,9 +13,6 @@
 // #include <rudra/Network.h>
 #include <rudra/util/MatrixContainer.h>
 #include <rudra/io/GPFSSampleClient.h> // x10-impl always assumes GPFSSampleClient
-// vj -- need to replace this functionality for Theano.
-// TODO: Arnaud -- please see the corresponding code in cpp/src/rudra/util/PSUtils.{cpp,h}.aside
-// #include <rudra/param/PSUtils.h>
 
 #include <cstdlib>
 #include <cstring>
@@ -42,13 +39,25 @@ namespace xrudra {
     rudra::GPFSSampleClient* testSC;
     int NUM_LEARNER;
     int NUM_MB_PER_EPOCH;
-    int theanoLearner;
 
-    //    rudra::SolverType solverType; // added on Aug 12, 2015
+    void *learner_data;
+    int (*leaner_init)(void **data, struct param[], size_t numParams);
+    void (*learner_destroy)(void *data);
+    size_t (*leaner_netsize)(void *data);
+    float (*leaner_train)(void *data, uint32 batchSize,
+                          const float *features, ssize_t numInputDims,
+                          const float *targets, ssize_t numClasses);
+    float (*leaner_test)(void *data, uint32 batchSize,
+                         const float *features, ssize_t numInputDims,
+                         const float *targets, ssize_t numClasses);
+    void (*learner_getgrads)(void *data, float *updates);
+    void (*learner_accgrads)(void *data, float *updates);
+    void (*leaner_updatelr)(void *data, float newLR);
+    void (*leaner_getweights)(void *data, float *weights);
+    void (*leaner_setweights)(void *data, float *weights);
+    void (*leaner_updweights)(void *data, float *weights, size_t numMB);
 
     std::string cfgFile;
-    // called everywhere (e.g., LA, SS, PS)
-    //    rudra::PSUtils* psu;
     float testErr;
 
     //// methods shared by Param Server and Learner Agents
@@ -99,7 +108,6 @@ namespace xrudra {
     long getTestNum();
     //////////////////// end of SS Section //////////////////////////
 
-    
   };
 }
 #endif
