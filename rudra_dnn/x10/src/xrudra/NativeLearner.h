@@ -10,6 +10,7 @@
 #include <x10/lang/Rail.h>
 
 #include <rudra/MLPparams.h>
+#include <rudra/learner.h>
 // #include <rudra/Network.h>
 #include <rudra/util/MatrixContainer.h>
 #include <rudra/io/GPFSSampleClient.h> // x10-impl always assumes GPFSSampleClient
@@ -23,6 +24,7 @@ namespace xrudra {
 
   public:
     NativeLearner();
+    ~NativeLearner();
     NativeLearner* _make();
 
     long pid;    
@@ -40,22 +42,19 @@ namespace xrudra {
     int NUM_LEARNER;
     int NUM_MB_PER_EPOCH;
 
+    void *learner_handle;
     void *learner_data;
-    int (*leaner_init)(void **data, struct param[], size_t numParams);
-    void (*learner_destroy)(void *data);
-    size_t (*leaner_netsize)(void *data);
-    float (*leaner_train)(void *data, uint32 batchSize,
-                          const float *features, ssize_t numInputDims,
-                          const float *targets, ssize_t numClasses);
-    float (*leaner_test)(void *data, uint32 batchSize,
-                         const float *features, ssize_t numInputDims,
-                         const float *targets, ssize_t numClasses);
-    void (*learner_getgrads)(void *data, float *updates);
-    void (*learner_accgrads)(void *data, float *updates);
-    void (*leaner_updatelr)(void *data, float newLR);
-    void (*leaner_getweights)(void *data, float *weights);
-    void (*leaner_setweights)(void *data, float *weights);
-    void (*leaner_updweights)(void *data, float *weights, size_t numMB);
+    learner_init_t *learner_init;
+    learner_destroy_t *learner_destroy;
+    learner_netsize_t *learner_netsize;
+    learner_train_t *learner_train;
+    learner_test_t *learner_test;
+    learner_getgrads_t *learner_getgrads;
+    learner_accgrads_t *learner_accgrads;
+    learner_updatelr_t *learner_updatelr;
+    learner_getweights_t *learner_getweights;
+    learner_setweights_t *learner_setweights;
+    learner_updweights_t *learner_updweights;
 
     std::string cfgFile;
     float testErr;
