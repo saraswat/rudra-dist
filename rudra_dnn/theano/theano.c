@@ -3,9 +3,7 @@
 #include <numpy/arrayobject.h>
 
 #include <stdio.h>
-#include "theano.h"
-
-static PyObject *mod = NULL;
+#include <rudra/learner.h>
 
 /* This is required because import_array is a macro that may return */
 static
@@ -18,20 +16,63 @@ imp_array(void) {
   import_array();
 }
 
-int theano_init(void) {
-  const char *name = "mlp";
+static int python_refcnt = 0;
 
-  /* Do not register signal handlers for python.
-     Also, this can run more than once safely */
-  Py_InitializeEx(0);
-  imp_array();
-  if (PyErr_Occurred()) {
-    PyErr_Clear();
-    return -1;
+static int init_python(void) {
+  if (python_refcnt == 0) {
+    /* Do not register signal handlers for python.
+       Also, this can run more than once safely */
+    Py_InitializeEx(0);
+    imp_array();
+    if (PyErr_Occurred()) {
+      PyErr_Clear();
+      return 1;
+    }
+  }
+  python_refcnt++;
+  return 0;
+}
+static void close_python(void) {
+  python_refcnt--;
+  if (python_refcnt == 0) {
+    Py_Finalize();
+  }
+}
+
+int learner_init(void **_net, struct param params[],
+                 size_t numParams) {
+  PyObject **net = (PyObject **)_net;
+  PyObject *mod = NULL;
+  PyObject *pdict = NULL;
+  PyObject *init = NULL;
+  const char *name = NULL;
+  size_t i;
+
+  if (init_python())
+    return 1;
+
+  *net = NULL;
+
+  pdict = PyDict_New();
+  if (pdict == NULL)
+    goto error;
+
+  for (i = 0; i < numParams; i++) {
+    PyObject *val = PyString_FromString(params[i].val);
+    if (val == NULL)
+      goto error;
+    if (strcmp(params[i].key, "modname"))
+      name = params[i].val;
+    if (PyDict_SetItemString(pdict, params[i].key, val) == -1) {
+      Py_DECREF(val);
+      goto error;
+    }
+    Py_DECREF(val);
   }
 
-  /* Make sure to clear any previous loaded module */
-  Py_XDECREF(mod);
+  if (name == NULL)
+    goto error;
+
   /* This will load the module, but return an error if something else
      is using the import mechanism right now rather than wait
      indefinitely */
@@ -40,67 +81,88 @@ int theano_init(void) {
   if (mod == NULL) {
     fprintf(stderr, "Could not import module %s, make sure it is available in "
             "the python path.\n", name);
-    /* We need to clear the python error otherwise it may show up
-       again in some other places. */
-    PyErr_Clear();
-    return -1;
+    goto error;
   }
 
-  /* This is just preemptive error checking to make sure the module
-     has the methods that we need. */
-  if (!PyObject_HasAttrString(mod, "train")) {
-    fprintf(stderr, "No method 'train' found in module\n");
-    Py_XDECREF(mod);
-    mod = NULL;
-    return -1;
+  init = PyObject_GetAttrString(mod, "init");
+  if (init == NULL) {
+    fprintf(stderr, "No method 'init' found in module %s\n", name);
+    goto error;
   }
-  if (!PyObject_HasAttrString(mod, "set_params")) {
-    fprintf(stderr, "No method 'set_params' found in module\n");
-    Py_XDECREF(mod);
-    mod = NULL;
-    return -1;
+  Py_DECREF(mod); mod = NULL;
+
+  *net = PyObject_CallFunctionObjArgs(init, pdict, NULL);
+  if (*net == NULL)
+    goto error;
+  Py_DECREF(init); init = NULL;
+  Py_DECREF(pdict); pdict = NULL;
+
+#define CHECK_METHOD(name)                                            \
+  if (!PyObject_HasAttrString(*net, name)) {                          \
+    fprintf(stderr, "No attribute '%s' found in net object\n", name); \
+    goto error;                                                       \
   }
-  if (!PyObject_HasAttrString(mod, "get_updates")) {
-    fprintf(stderr, "No method 'get_updates' found in module\n");
-    Py_XDECREF(mod);
-    mod = NULL;
-    return -1;
-  }
+  CHECK_METHOD("size");
+  CHECK_METHOD("train");
+  CHECK_METHOD("test");
+  CHECK_METHOD("get_grads");
+  CHECK_METHOD("acc_grads");
+  CHECK_METHOD("upd_lr");
+  CHECK_METHOD("set_params");
+  CHECK_METHOD("get_params");
+  CHECK_METHOD("upd_params");
+
   return 0;
-}
-
-void theano_fini(void) {
-  /* Make sure to DECREF our module (XDECREF will check if it's a NULL
-   * pointer and do nothing in that case) to properly release memory.
-   */
+error:
+  PyErr_Clear();
   Py_XDECREF(mod);
-  mod = NULL;
-  Py_Finalize();
+  Py_XDECREF(pdict);
+  Py_XDECREF(init);
+  Py_XDECREF(*net);
+  *net = NULL;
+  return 1;
 }
 
+void learner_destroy(void *net) {
+  Py_DECREF((PyObject *)net);
+  close_python();
+}
 
-float theano_train(const float *features, int fnd, ssize_t *fdims,
-           const float *targets, int tnd, ssize_t *tdims) {
-  PyGILState_STATE gstate;
-  PyObject *train = NULL;
+size_t learner_netsize(void *net) {
+  PyObject *size = PyObject_CallMethod((PyObject *)net, "size", NULL);
+  Py_ssize_t res;
+  if (size == NULL)
+    return 0;
+
+  if (PyLong_Check(size)) {
+    res = PyLong_AsSsize_t(size);
+    if (res == -1 && PyErr_Occurred()) {
+      PyErr_Clear();
+      res = 0;
+    }
+#if PY_MAJOR_VERSION < 3
+  } else if (PyInt_Check(size)) {
+    res = PyInt_AsSsize_t(size);
+    if (res == -1 && PyErr_Occurred()) {
+      PyErr_Clear();
+      res = 0;
+    }
+#endif
+  } else {
+    res = 0;
+  }
+  Py_DECREF(size);
+  return (size_t)res;
+}
+
+static float _learner_call2(PyObject *net, const char *meth, size_t batchSize,
+                            const float *features, ssize_t numInputDims,
+                            const float *targets, ssize_t numClasses) {
   PyObject *fdata = NULL;
   PyObject *tdata = NULL;
   PyObject *res = NULL;
-
-  /* If no module was loaded there is nothing to do */
-  if (mod == NULL) return 1.0;
-
-  /* This makes sure we have the GIL and can run python methods (that
-     includes the C-API part of python). This version is safe even if
-     your program has multiple threads. */
-  gstate = PyGILState_Ensure();
-
-  /* Get a reference to the "train" method */
-  train = PyObject_GetAttrString(mod, "train");
-  if (train == NULL) {
-    fprintf(stderr, "Could not get train function from module");
-    goto error;
-  }
+  npy_intp dims[2];
+  float error = -1.0f;
 
   /* Create an ndarray object that points to the features. We don't
      specify flags that make the array writeable to prevent the python
@@ -116,16 +178,18 @@ float theano_train(const float *features, int fnd, ssize_t *fdims,
      We pass NULL for the strides which makes it assume
      C-contiguous. If the data was arranged differently we would have
      to pass explicit strides. */
-  fdata = PyArray_New(&PyArray_Type, fnd, fdims, NPY_FLOAT32, NULL,
+  dims[0] = batchSize;
+  dims[1] = numInputDims;
+  fdata = PyArray_New(&PyArray_Type, 2, dims, NPY_FLOAT32, NULL,
                       (void *)features, 4, NPY_ARRAY_IN_ARRAY, NULL);
   if (fdata == NULL) {
     fprintf(stderr, "Could not create features array");
     goto error;
   }
 
-
   /* Same for targets. */
-  tdata = PyArray_New(&PyArray_Type, tnd, tdims, NPY_FLOAT32, NULL,
+  dims[1] = numClasses;
+  tdata = PyArray_New(&PyArray_Type, 2, dims, NPY_FLOAT32, NULL,
                       (void *)targets, 4, NPY_ARRAY_IN_ARRAY, NULL);
   if (tdata == NULL) {
     fprintf(stderr, "Could not create targets array");
@@ -133,12 +197,24 @@ float theano_train(const float *features, int fnd, ssize_t *fdims,
   }
 
   /* Call the train function with the two array objects. */
-  res = PyObject_CallFunctionObjArgs(train, fdata, tdata, NULL);
-  if (res == NULL)
+  res = PyObject_CallMethod((PyObject *)net, (char *)meth, "OO", fdata, tdata);
+  if (res == NULL) {
+    /* We need to care about the return value since python functions
+       always return something. The returned object needs to be DECREF'd
+       and a NULL return value indicates an error happened. */
+
     fprintf(stderr, "Error calling train function");
-  /* We need to care about the return value since python functions
-     always return something. The returned object needs to be DECREF'd
-     and a NULL return value indicates an error happened. */
+    goto error;
+  }
+  /* Make sure the python function did not keep references */
+  assert(fdata->ob_refcnt == 1);
+  assert(tdata->ob_refcnt == 1);
+
+  error = PyFloat_AsDouble(res);
+  if (error == -1.0f && PyErr_Occurred())
+    /* Yes this does not change anything, but if we ever add code
+     * below it reduces the risk of bugs */
+    goto error;
 
   /* Finally release all the objects we created.  This does not
      explicitely destroy theses objects, merely remove the reference
@@ -147,193 +223,102 @@ float theano_train(const float *features, int fnd, ssize_t *fdims,
      is deferred to when the python GC will run. */
  error:
   PyErr_Clear(); // It is safe to clear error state when there is no error
-  Py_XDECREF(train);
   Py_XDECREF(fdata);
   Py_XDECREF(tdata);
   Py_XDECREF(res);
 
-  /* Finally release the GIL to let other code run */
-  PyGILState_Release(gstate);
-  // vj to do: get the training error from theano and return it.
-  return 1.0f;
+  return error;
 }
 
-float theano_train_entry(ssize_t batchSize, const float *features, ssize_t numInputDims, 
-			const float *targets, ssize_t numClasses) {
-  ssize_t fdims[2] = {batchSize, numInputDims}; // hmm do these need to be in reverse order?
-  ssize_t tdims[2] = {batchSize, numClasses};
-  return theano_train(features,2, fdims, targets, 2, tdims);
-
-
-}
-/* These must macth to what is defined inside of the python file */
-static npy_intp W1_shape[2] = {784, 500};
-static npy_intp b1_shape[1] = {500};
-static npy_intp W2_shape[2] = {500, 10};
-static npy_intp b2_shape[1] = {10};
-
-/* This includes the element size */
-static const size_t param_sizes[] = {
-  784 * 500 * 4, // W1
-  500 * 4, // b1
-  500 * 10 * 4, // W2
-  10 * 4 // b2
-};
-
-size_t theano_networkSize(void) {
-  return param_sizes[0] + param_sizes[1] + param_sizes[2] + param_sizes[3];
+float learner_train(void *net, size_t batchSize,
+                    const float *features, ssize_t numInputDims,
+                    const float *targets, ssize_t numClasses) {
+  return _learner_call2(net, "train", batchSize, features, numInputDims,
+                        targets, numClasses);
 }
 
-void theano_set_param(const void *p, size_t size) {
-  PyGILState_STATE gstate;
-  PyObject *set_data = NULL;
-  PyObject *W1 = NULL;
-  PyObject *b1 = NULL;
-  PyObject *W2 = NULL;
-  PyObject *b2 = NULL;
+float learner_test(void *net, size_t batchSize,
+                   const float *features, ssize_t numInputDims,
+                   const float *targets, ssize_t numClasses) {
+  return _learner_call2(net, "test", batchSize, features, numInputDims,
+                        targets, numClasses);
+}
+
+static void _learner_call1(void *net, const char *meth, float *data) {
+  PyObject *udata = NULL;
   PyObject *res = NULL;
-  char *ptr = (char *)p;
+  npy_intp len = learner_netsize(net);
 
-  if (mod == NULL) return;
-
-  gstate = PyGILState_Ensure();
-
-  set_data = PyObject_GetAttrString(mod, "set_params");
-  if (set_data == NULL) {
-    fprintf(stderr, "Could not get set_params function from module");
-    goto error;
+  udata = PyArray_New(&PyArray_Type, 1, &len, NPY_FLOAT32, NULL, data,
+                      4, NPY_ARRAY_OUT_ARRAY, NULL);
+  if (udata == NULL) {
+    // TODO: indicate error?
+    PyErr_Clear();
+    return;
   }
 
-  /* We split the data into multiple arrays in C since it's much
-     easier. */
-  W1 = PyArray_New(&PyArray_Type, 2, W1_shape, NPY_FLOAT32, NULL, ptr,
-                   4, NPY_ARRAY_IN_ARRAY, NULL);
-  if (W1 == NULL) {
-    fprintf(stderr, "Could not create W1 array");
-    goto error;
+  res = PyObject_CallMethod((PyObject *)net, (char *)meth, "O", udata);
+  /* Make sure the python function did not keep references */
+  assert(udata->ob_refcnt == 1);
+  Py_DECREF(udata);
+
+  if (res == NULL) {
+    // TODO: indicate error?
+    PyErr_Clear();
+    return;
   }
-  ptr += param_sizes[0];
-
-  b1 = PyArray_New(&PyArray_Type, 1, b1_shape, NPY_FLOAT32, NULL, ptr,
-                   4, NPY_ARRAY_IN_ARRAY, NULL);
-  if (b1 == NULL) {
-    fprintf(stderr, "Could not create b1 array");
-    goto error;
-  }
-  ptr += param_sizes[1];
-
-  W2 = PyArray_New(&PyArray_Type, 2, W2_shape, NPY_FLOAT32, NULL, ptr,
-                   4, NPY_ARRAY_IN_ARRAY, NULL);
-  if (W2 == NULL) {
-    fprintf(stderr, "Could not create W2 array");
-    goto error;
-  }
-  ptr += param_sizes[2];
-
-  b2 = PyArray_New(&PyArray_Type, 1, b2_shape, NPY_FLOAT32, NULL, ptr,
-                   4, NPY_ARRAY_IN_ARRAY, NULL);
-  if (b2 == NULL) {
-    fprintf(stderr, "Could not create b2 array");
-    goto error;
-  }
-
-  res = PyObject_CallFunctionObjArgs(set_data, W1, b1, W2, b2, NULL);
-  if (res == NULL)
-    fprintf(stderr, "Error calling set_params function");
-
- error:
-  PyErr_Clear();
-  Py_XDECREF(set_data);
-  Py_XDECREF(W1);
-  Py_XDECREF(b1);
-  Py_XDECREF(W2);
-  Py_XDECREF(b2);
-  Py_XDECREF(res);
-
-  PyGILState_Release(gstate);
-}
-void theano_set_param_entry(const void *p) {
-  theano_set_param(p, theano_networkSize());
+  Py_DECREF(res);
 }
 
-void theano_get_update(void *p, size_t size) {
-  PyGILState_STATE gstate;
-  PyObject *fetch_update = NULL;
-  PyObject *W1 = NULL;
-  PyObject *b1 = NULL;
-  PyObject *W2 = NULL;
-  PyObject *b2 = NULL;
+void learner_getgrads(void *net, float *updates) {
+  _learner_call1(net, "getgrads", updates);
+}
+
+void learner_accgrads(void *net, float *updates) {
+  _learner_call1(net, "accgrads", updates);
+}
+
+void learner_updatelr(void *net, float newLR) {
+  PyObject *res;
+  res = PyObject_CallMethod((PyObject *)net, "updatelr", "f", newLR);
+  if (res == NULL) {
+    // TODO: indicate error
+    return;
+  }
+  Py_DECREF(res);
+}
+
+void learner_getweights(void *net, float *weights) {
+  _learner_call1(net, "getweights", weights);
+}
+
+void learner_setweights(void *net, float *weights) {
+  _learner_call1(net, "setweights", weights);
+}
+
+void learner_updweights(void *net, float *grads, size_t numMB) {
+  PyObject *gdata = NULL;
   PyObject *res = NULL;
-  char *ptr = p;
+  npy_intp len = learner_netsize(net);
 
-  if (mod == NULL) return;
-
-  gstate = PyGILState_Ensure();
-
-  fetch_update = PyObject_GetAttrString(mod, "get_updates");
-  if (fetch_update == NULL) {
-    fprintf(stderr, "Could not get get_updates function from module");
-    goto error;
+  gdata = PyArray_New(&PyArray_Type, 1, &len, NPY_FLOAT32, NULL, grads,
+                      4, NPY_ARRAY_OUT_ARRAY, NULL);
+  if (gdata == NULL) {
+    // TODO: indicate error?
+    PyErr_Clear();
+    return;
   }
 
-  /* Here we do specify flags that make the array writeable since we
-     want the python code to write its data there. */
-  W1 = PyArray_New(&PyArray_Type, 2, W1_shape, NPY_FLOAT32, NULL, ptr,
-                   4, NPY_ARRAY_OUT_ARRAY, NULL);
-  if (W1 == NULL) {
-    fprintf(stderr, "Could not create W1 array");
-    goto error;
+  res = PyObject_CallMethod((PyObject *)net, "updweights", "On", gdata,
+                            (Py_ssize_t)numMB);
+  /* Make sure the python function did not keep references */
+  assert(gdata->ob_refcnt == 1);
+  Py_DECREF(gdata);
+
+  if (res == NULL) {
+    // TODO: indicate error?
+    PyErr_Clear();
+    return;
   }
-  ptr += param_sizes[0];
-
-  b1 = PyArray_New(&PyArray_Type, 1, b1_shape, NPY_FLOAT32, NULL, ptr,
-                   4, NPY_ARRAY_OUT_ARRAY, NULL);
-  if (b1 == NULL) {
-    fprintf(stderr, "Could not create b1 array");
-    goto error;
-  }
-  ptr += param_sizes[1];
-
-  W2 = PyArray_New(&PyArray_Type, 2, W2_shape, NPY_FLOAT32, NULL, ptr,
-                   4, NPY_ARRAY_OUT_ARRAY, NULL);
-  if (W2 == NULL) {
-    fprintf(stderr, "Could not create W2 array");
-    goto error;
-  }
-  ptr += param_sizes[2];
-
-  b2 = PyArray_New(&PyArray_Type, 1, b2_shape, NPY_FLOAT32, NULL, ptr,
-                   4, NPY_ARRAY_OUT_ARRAY, NULL);
-  if (b2 == NULL) {
-    fprintf(stderr, "Could not create b2 array");
-    goto error;
-  }
-
-  res = PyObject_CallFunctionObjArgs(fetch_update, W1, b1, W2, b2, NULL);
-  if (res == NULL)
-    fprintf(stderr, "Error calling get_updates function");  
-
- error:
-  PyErr_Clear();
-  Py_XDECREF(fetch_update);
-  Py_XDECREF(W1);
-  Py_XDECREF(b1);
-  Py_XDECREF(W2);
-  Py_XDECREF(b2);
-  Py_XDECREF(res);
-
-  PyGILState_Release(gstate);
+  Py_DECREF(res);
 }
-
-void theano_get_update_entry(void *p) {
-  theano_get_update(p, theano_networkSize());
-}
-
-/*int main(void) {
-  fprintf(stdout, "Hello, world...");
-  init();
-  fini();
-  fprintf(stdout, "\n...done!");
-  return 1;
-}
-*/
