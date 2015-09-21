@@ -15,47 +15,59 @@ struct param {
 
 
 /* Initialize the learner.  Return 0 for success and 1 for failure */
-int learner_init(void **data, struct param params[], size_t numParams);
+typedef int learner_init_t(void **data, struct param params[],
+                           size_t numParams);
+learner_init_t learner_init;
 
 /* Deallocate any resource associated with the provided data */
-void learner_destroy(void *data);
+typedef void learner_destroy_t(void *data);
+learner_destroy_t learner_destroy;
 
 /* Return the total number of parameters for all the layers (in number
  * of floats).  This is used to size all provided buffers (except
  * train/test data) */
-size_t learner_netsize(void *data);
+typedef size_t learner_netsize_t(void *data);
+learner_netsize_t learner_netsize;
 
 /* Compute cost and accumulate gradients in an internal buffer.
  * Don't update weights.  Return the cost. */
-float learner_train(void *data, size_t batchSize,
-                   const float *features, ssize_t numInputDims,
-                   const float *targets, ssize_t numClasses);
+typedef float learner_train_t(void *data, size_t batchSize,
+                              const float *features, ssize_t numInputDims,
+                              const float *targets, ssize_t numClasses);
+learner_train_t learner_train;
 
 /* Compute cost and return it.  Don't accumulate gradient. Don't
  * update weights */
-float learner_test(void *data, size_t batchSize,
-                  const float *features, ssize_t numInputDims,
-                  const float *targets, ssize_t numClasses);
+typedef float learner_test_t(void *data, size_t batchSize,
+                             const float *features, ssize_t numInputDims,
+                             const float *targets, ssize_t numClasses);
+learner_test_t learner_test;
 
 /* Set the provided buffer to the internal gradients buffer and zero
  * the internal buffer. */
-void learner_getgrads(void *data, float *updates);
+typedef void learner_getgrads_t(void *data, float *updates);
+learner_getgrads_t learner_getgrads;
 
 /* Add the internal gradient buffer to the provided buffer
  * (zero internal?)  */
-void learner_accgrads(void *data, float *updates);
+typedef void learner_accgrads_t(void *data, float *updates);
+learner_accgrads_t learner_accgrads;
 
 /* Set the internal learning rate to the provided value */
-void learner_updatelr(void *data, float newLR);
+typedef void learner_updatelr_t(void *data, float newLR);
+learner_updatelr_t learner_updatelr;
 
 /* Serialize the internal weights into the provided buffer */
-void learner_getweights(void *data, float *weights);
+typedef void learner_getweights_t(void *data, float *weights);
+learner_getweights_t learner_getweights;
 
 /* Deserialized the weights from the provided buffer */
-void learner_setweights(void *data, float *weights);
+typedef void learner_setweights_t(void *data, float *weights);
+learner_setweights_t learner_setweights;
 
 /* Update the internal weights with the provided gradient */
-void learner_updweights(void *data, float *grads, size_t numMB);
+typedef void learner_updweights_t(void *data, float *grads, size_t numMB);
+learner_updweights_t learner_updweights;
 
 #ifdef __cplusplus
 }
