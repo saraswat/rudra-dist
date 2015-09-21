@@ -18,7 +18,7 @@ RUDRA_LIB_OBJS =  $(RUDRA_LIB_SRC:%.cpp=%.o)
 
 MPISRC := $(wildcard src/rudra/mpi/*.cpp) $(wildcard src/rudra/learner/*.cpp) $(wildcard src/rudra/param/*.cpp) $(wildcard src/rudra/sample/*.cpp) $(wildcard src/rudra/stat/*.cpp)
 MPIOBJS = $(MPISRC:%.cpp=%.o)
-PUBLICHEADERS :=  rudra/MLPparams.h rudra/io/SampleClient.h rudra/io/BinarySampleReader.h rudra/io/CharBinarySampleReader.h rudra/io/CharBinarySampleSeqReader.h rudra/io/BinarySampleSeqReader.h rudra/io/BinarySampleMFReader.h rudra/io/BinarySampleMFSeqReader.h rudra/io/GPFSSampleClient.h rudra/io/SampleReader.h rudra/io/UnifiedBinarySampleReader.h rudra/io/UnifiedBinarySampleSeqReader.h  rudra/util/*.h 
+PUBLICHEADERS :=  rudra/MLPparams.h rudra/leaner.h rudra/io/SampleClient.h rudra/io/BinarySampleReader.h rudra/io/CharBinarySampleReader.h rudra/io/CharBinarySampleSeqReader.h rudra/io/BinarySampleSeqReader.h rudra/io/BinarySampleMFReader.h rudra/io/BinarySampleMFSeqReader.h rudra/io/GPFSSampleClient.h rudra/io/SampleReader.h rudra/io/UnifiedBinarySampleReader.h rudra/io/UnifiedBinarySampleSeqReader.h  rudra/util/*.h
 HEADERDIR := $(CURDIR)/include
 LIBDIR := lib
 RUDRA_LIB := $(LIBDIR)/librudra.a
@@ -30,7 +30,7 @@ HDF5_INCLUDE_PATH ?= $(CURDIR)/hdf5/include
 HDF5_LIB_PATH ?= $(CURDIR)/hdf5/lib
 #OPENBLAS_LIB_PATH ?= /usr/lib64
 
-# If no optimization parameter set then do optimize 
+# If no optimization parameter set then do optimize
 # as opposed to compile for debugging
 OPT ?= -O3
 
@@ -39,7 +39,7 @@ OPT ?= -O3
 # Set CXX and other environment variables expressing the choice.
 # Unfortunately, mpicxx does not use CXX to determine its compiler;
 # instead it uses the setitng inside mpic++-wrapper-data.txt.
-# Therefore you can use the parameter ARCH to force architecture consistent 
+# Therefore you can use the parameter ARCH to force architecture consistent
 # with mpic++-wrapper-data.txt.
 
 ifdef ARCH
@@ -69,9 +69,9 @@ else
     # assume g++
     CXXFLAGS += -std=c++0x $(OPT) -w -Wno-strict-aliasing -fopenmp -DHAS_TR1_RANDOM
 
-    ifneq (,$(findstring -g,$(OPT))) 
+    ifneq (,$(findstring -g,$(OPT)))
          # generate information for printing backtrace
-         CXXFLAGS += -rdynamic   
+         CXXFLAGS += -rdynamic
     endif
 endif
 
