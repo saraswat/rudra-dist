@@ -12,49 +12,60 @@ import x10.compiler.NativeRep;
 @NativeCPPCompilationUnit("NativeLearner.cpp")
 @NativeRep("c++", "xrudra::NativeLearner*", "xrudra::NativeLearner", null)
 public class NativeLearner {
-    @Native("c++", "new xrudra::NativeLearner()")
-    public def this(){}
+
+    @Native("c++", "NativeLearner::setLoggingLevel(#level)")
+        public static def setLoggingLevel(level:Int):void {}
+
+    @Native("c++", "NativeLearner::setJobDir(#jobdir->c_str())")
+    public static def setJobDir(jobdir:String):void {}
+
+    @Native("c++", "NativeLearner::setAdaDeltaParams(#rho, #epsilon, #defaultRho, #defaultEpsilon)")
+        public static def setAdaDeltaParams(rho:Float, epsilon:Float, 
+                                            defaultRho:Float, defaultEpsilon:Float):void {}
+
+    @Native("c++", "NativeLearner::setMeanFile(#fn->c_str())")
+    public static def setMeanFile(fn:String):void {}
+
+    @Native("c++", "NativeLearner::setSeed(#id, #seed, #defaultSeed)")
+        public static def setSeed(id:Long, seed:Int, defaultSeed:Int):void {}
+
+    @Native("c++", "NativeLearner::setMoM(#mom)")
+    public static def setMoM(mom:Float):void {}
+
+    @Native("c++", "NativeLearner::setLRMult(#mult)")
+        public static def setLRMult(mult:Float):void {}
+
+    @Native("c++", "NativeLearner::setWD()")
+    public static def setWD():void {}
+
+    @Native("c++", "NativeLearner::initFromCFGFile(#cfgName->c_str())")
+    public static def initFromCFGFile(cfgName:String):void {}
+
+    @Native("c++", "new xrudra::NativeLearner(#id)")
+        public def this(id:Long){}
         
-    @Native("c++", "#this->initNativeLand(#id, #confName->c_str(),  #numLearner)")
+    @Native("c++", "#this->initNativeLand(#id, #confName->c_str(), #seed, #defaultSeed, #numLearner)")
         public def initNativeLand(id:Long, confName:String, numLearner:Long):void{}
 
-    @Native("c++", "#this->initNetwork(#b)")
-        public def initNetwork(b:Boolean):Int{
-        return 1n;
-    }
-
-    @Native("c++", "#this->initPSU(#mysolverType->c_str())")
-    public def initPSU(val mysolverType:String):void {}
-
-    @Native("c++", "#this->setMeanFile(#fn->c_str())")
-    public def setMeanFile(fn:String):void {}
+    @Native("c++", "#this->checkpointIfNeeded(#epoch)")
+    public def checkpointIfNeeded(epoch:Int):void {}
 
     @Native("c++", "#this->getNetworkSize()")
     public def getNetworkSize():Long {
         return 0;
     }
         
-    @Native("c++", "#this->initAsLA(#isReconciler)")
-        public def initAsLA(isReconciler:Boolean):void{}
-        
-    @Native("c++", "#this->loadTestData()")
-    public def loadTestData():void{}
 
-    @Native("c++", "#this->loadMiniBatch()")
-    public def loadMiniBatch():void{}
+    @Native("c++", "#this->initAsLearner(#weightsFile->c_str(), #solverType->c_str())")
+    public def initAsLearner(weightsFile:String, solverType:String):void { }
+
+    @Native("c++", "#this->initAsTester(#placeId, #solverType->c_str())")
+    public def initAsTester(placeId:Long, solverType:String):void { }
         
     @Native("c++", "#this->trainMiniBatch()")
     public def trainMiniBatch():float{
             return 0F;
     }
-
-    @Native("c++", "#this->testOneEpoch()")
-    public def testOneEpoch():Float{
-        return -2.0f;
-    }
-
-    @Native("c++", "#this->initTestSC(#placeID, #numLearner)")
-    public def initTestSC(placeID:Long, numLearner:Long):void{}
 
     @Native("c++", "#this->getGradients(#gradients->raw)")
     public def getGradients(gradients:Rail[Float]):void {}
@@ -74,31 +85,25 @@ public class NativeLearner {
     @Native("c++", "#this->acceptGradients(#delta->raw, #numMB)")
     public def acceptGradients(val delta:Rail[Float], val numMB:Long):void{}
 
-    @Native("c++", "rudra::MLPparams::_numEpochs")
+    @Native("c++", "#this->getNumEpochs()")
     public def getNumEpochs():Long { return -1; }
 
-    @Native("c++", "rudra::MLPparams::_numTrainSamples")
+    @Native("c++", "#this->getNumTrainingSamples()")
     public def getNumTrainingSamples():Long { return -1; }
 
-    @Native("c++", "rudra::MLPparams::_batchSize")
+    @Native("c++", "#this->getMBSize()")
     public def getMBSize():Long { return -1; }
+            
+    @Native("c++", "#this->testOneEpochSC(#weights->raw, #numTesters)")
+        public def testOneEpochSC(weights:Rail[Float], numTesters:Long):Float {
+        return -3.0f;
+    }
 
-    // vj TODO: fix    
-    @Native("c++", "#this->initTestSC()")
-    public def initTestSC():void{}
-            
-    @Native("c++", "#this->testOneEpoch(#weights->raw)")
-    public def testOneEpoch(weights:Rail[Float]):Float{
-        return -3.0f;
-    }
-            
-    @Native("c++", "#this->testOneEpochSC(#weights->raw)")
-    public def testOneEpochSC(weights:Rail[Float]):Float{
-        return -3.0f;
-    }
-    @Native("c++", "#this->getTestNum()")
-    public def getTestNum():long{
-	return -1;
-    }
+    /**
+     * Free all native-allocated memory.  Afterwards, this object is no
+     * longer valid and no further method invocations should be made.
+     */
+    @Native("c++", "#this->cleanup()")
+    public def cleanup():void { }
 }
 // vim: shiftwidth=4:tabstop=4:expandtab

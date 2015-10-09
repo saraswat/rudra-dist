@@ -5,7 +5,7 @@ package xrudra;
     with  loadSize that represents the number of MB used to compute this weight.
     @author vj
  */
-public class TimedWeight(size:Long) { // mutated in place, hence fields are vars.
+public class TimedWeight(size:Long) implements TimedWeightI { // mutated in place, hence fields are vars.
     public static val POISON=new TimedWeight(0,0un);
     var timeStamp:UInt=0un;
     var loadSize:UInt=0un;
@@ -13,10 +13,16 @@ public class TimedWeight(size:Long) { // mutated in place, hence fields are vars
     def this(size:Long){property(size);}
     def this(size:Long, ls:UInt){property(size); loadSize=ls;}
 
-    def loadSize():UInt=loadSize;
-    def setLoadSize(l:UInt):void{
+    public def loadSize():UInt=loadSize;
+    public def setLoadSize(l:UInt):void{
         loadSize=l;
     }
+    public def weightRail() = weight;
+    public def timeStamp() = timeStamp;
+    public def setTimeStamp(t:UInt):void {
+        timeStamp = t;
+
+}
     def calcHash():Float{
         var result:Float=0.0f;
         for (x in weight) result+=x;

@@ -1,4 +1,4 @@
- /**
+/**
  * GPFSSampleClient.h
  */
 #ifndef RUDRA_IO_GPFSSAMPLECLIENT_H
@@ -17,7 +17,8 @@ public:
 	GPFSSampleClient(std::string name, bool threaded,
 			SampleReader *sampleReader);
 	//@Override
-	void getLabelledSamples(MatrixContainer<float> &samples, MatrixContainer<float> &labels);
+	void getLabelledSamples(float* samples, float* labels);
+	size_t getSizePerLabel();
 	~GPFSSampleClient();
 protected:
 	void producerThdFunc(void *args);
@@ -25,8 +26,8 @@ private:
 	std::string clientName;
 	bool threaded;
 	SampleReader *sampleReader;
-	MatrixContainer<float> X; // training data minibatch
-	MatrixContainer<float> Y; // training label minibatch
+	float* X; // training data minibatch
+	float* Y; // training label minibatch
 	volatile bool finishedFlag;
 	volatile int count;
 	pthread_cond_t empty;

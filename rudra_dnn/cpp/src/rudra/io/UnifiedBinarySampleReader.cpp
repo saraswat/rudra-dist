@@ -7,23 +7,19 @@
 
 #include "rudra/io/UnifiedBinarySampleReader.h"
 #include "rudra/io/BinaryMatrixReader.h"
-#include "rudra/util/MatrixContainer.h"
 #include "rudra/MLPparams.h"
 #include "rudra/util/RudraRand.h"
 #include "rudra/util/Logger.h"
-#include <vector>
 #include <algorithm>
 #include <iostream>
-#include <vector>
-#include <string>
 #include <cstdlib>
+
 namespace rudra {
 UnifiedBinarySampleReader::UnifiedBinarySampleReader(std::string sampleFileName,
-				       std::string labelFileName, RudraRand rr) :
-		sizePerImg(MLPparams::_numInputDim), tdFile(sampleFileName), tlFile(
-										    labelFileName),rr(rr) {
-    this->setLabelDim();
-    this->sizePerLabel = MLPparams::_labelDim;
+		std::string labelFileName, RudraRand rr) :
+		SampleReader(MLPparams::_numInputDim), tdFile(sampleFileName), tlFile(
+				labelFileName), rr(rr) {
+    this->initSizePerLabel();
     this->checkFiles();
     this->initFileTypes();
 }
@@ -81,83 +77,85 @@ UnifiedBinarySampleReader::~UnifiedBinarySampleReader() {
  * Read a chosen number of samples into matrix X and the corresponding labels
  * into matrix Y.
  */
-void UnifiedBinarySampleReader::readLabelledSamples(size_t numSamples,
-		MatrixContainer<float> &X, MatrixContainer<float>& Y) {
+void UnifiedBinarySampleReader::readLabelledSamples(const size_t numSamples, float* X,
+		float* Y) {
 	std::vector<size_t> idx(numSamples);
 	for (size_t i = 0; i < numSamples; ++i) {
 	    idx[i] = rr.getLong() % MLPparams::_numTrainSamples;
 	}
 	std::sort(idx.begin(), idx.end());
 
-	// training data
-	switch(tdFT){
-		case FLOAT:{
-			assert(X.dimM >= numSamples);
-			assert(X.dimN == MLPparams::_numInputDim);
-			readRecordsFromBinMat(X.buf, numSamples, idx, sizePerImg, tdFile);
-			break;
-		}
+	retrieveData(numSamples, idx, X, Y);
+}
 
-		case CHAR:{
-			MatrixContainer<uint8> tempX(MLPparams::_batchSize, MLPparams::_numInputDim);
-			readRecordsFromBinMat(tempX.buf, numSamples, idx, sizePerImg, tdFile);
-			X = tempX; // convert from uint8 to float
-			break;
-		}
+void UnifiedBinarySampleReader::retrieveData(const size_t numSamples,
+		const std::vector<size_t>& idx, float* X, float* Y) {
+	switch (tdFT) {
+	case FLOAT: {
+		readRecordsFromBinMat(X, numSamples, idx, sizePerSample, tdFile);
+		break;
+	}
 
-		case INT:{
-			//TODO
-			Logger::logFatal("Training data file type of INT is not supported yet");
-			exit(EXIT_FAILURE);
-			break;
+	case CHAR: {
+		uint8* tempX = new uint8[numSamples * sizePerSample];
+		readRecordsFromBinMat(tempX, numSamples, idx, sizePerSample, tdFile);
+		for (size_t i = 0; i < numSamples * sizePerSample; ++i) {
+			X[i] = tempX[i]; // convert from uint8 to float
 		}
-		default :{
-			Logger::logFatal("Training data file type is invalid!");
-			exit(EXIT_FAILURE);
-			break;
-		}
+		delete[] tempX;
+		break;
+	}
+
+	case INT: {
+		//TODO
+		Logger::logFatal("Training data file type of INT is not supported yet");
+		exit(EXIT_FAILURE);
+		break;
+	}
+	default: {
+		Logger::logFatal("Training data file type is invalid!");
+		exit(EXIT_FAILURE);
+		break;
+	}
 
 	}
 	// training label
-
-	switch(tlFT){
-		case FLOAT:{
-			assert(Y.dimM >= numSamples);
-			assert(Y.dimN == MLPparams::_labelDim);
-			readRecordsFromBinMat(Y.buf, numSamples, idx, sizePerLabel, tlFile);
-			break;
-		}
-
-		case CHAR:{
-			assert(Y.dimM >= numSamples);
-			assert(Y.dimN == MLPparams::_labelDim);
-			MatrixContainer<uint8> tempY(MLPparams::_batchSize, MLPparams::_labelDim);
-			readRecordsFromBinMat(tempY.buf, numSamples, idx, sizePerLabel, tlFile);
-			Y = tempY; // convert from uint8 to float
-			break;
-		}
-
-		case INT:{
-			//TODO
-			Logger::logFatal("Training label file type of INT is not supported yet");
-			exit(EXIT_FAILURE);
-			break;
-		}
-		default :{
-			Logger::logFatal("Training label file type is invalid!");
-			exit(EXIT_FAILURE);
-			break;
-		}
-
+	switch (tlFT) {
+	case FLOAT: {
+		readRecordsFromBinMat(Y, numSamples, idx, sizePerLabel, tlFile);
+		break;
 	}
 
+	case CHAR: {
+		uint8* tempY = new uint8[numSamples * sizePerLabel];
+		readRecordsFromBinMat(tempY, numSamples, idx, sizePerLabel, tlFile);
+		for (size_t i = 0; i < numSamples * sizePerLabel; ++i) {
+			Y[i] = tempY[i]; // convert from uint8 to float
+		}
+		delete[] tempY;
+		break;
+	}
+
+	case INT: {
+		//TODO
+		Logger::logFatal(
+				"Training label file type of INT is not supported yet");
+		exit(EXIT_FAILURE);
+		break;
+	}
+	default: {
+		Logger::logFatal("Training label file type is invalid!");
+		exit(EXIT_FAILURE);
+		break;
+	}
+
+	}
 }
 
-
-    void UnifiedBinarySampleReader::setLabelDim(){
-    	int rows, columns;
-        MLPparams::readBinHeader(tlFile, rows, columns);
-        MLPparams::setLabelDim(columns);
-    }
+void UnifiedBinarySampleReader::initSizePerLabel() {
+	int rows, columns;
+	MLPparams::readBinHeader(tlFile, rows, columns);
+	sizePerLabel = columns;
+}
 
 }

@@ -1,8 +1,10 @@
 #include "NativeLearner.h"
-
+#include <rudra/MLPparams.h>
+#include <rudra/io/GPFSSampleClient.h>
 #include <rudra/io/UnifiedBinarySampleReader.h>
 #include <rudra/io/UnifiedBinarySampleSeqReader.h>
-#include "rudra/util/Logger.h"
+#include <rudra/util/Logger.h>
+#include <rudra/util/MatrixContainer.h>
 #include <rudra/util/RudraRand.h>
 #include <iostream>
 
@@ -11,54 +13,129 @@
 
 // refactor later
 namespace xrudra {
-  NativeLearner::NativeLearner() :
-    trainMBErr(-1.0f),
+
+    long NativeLearner::getNumEpochs() {
+        return rudra::MLPparams::_numEpochs;
+    }
+
+    long NativeLearner::getNumTrainingSamples() {
+        return rudra::MLPparams::_numTrainSamples;
+    }
+
+    long NativeLearner::getMBSize() {
+        return rudra::MLPparams::_batchSize;
+    }
+
+  // begin static methods setting fields in MLPparams
+  void NativeLearner::setLoggingLevel(int level) {
+    rudra::Logger::setLoggingLevel(level);
+  }
+  void NativeLearner::setJobDir(std::string jobDir) {
+    rudra::MLPparams::setJobID(jobDir);
+  }
+
+  void NativeLearner::setAdaDeltaParams(float rho, float epsilon,
+                                        float drho, float depsilon) {
+   if (rho != drho) rudra::MLPparams::_adaDeltaRho = rho;
+    if (epsilon != depsilon) rudra::MLPparams::_adaDeltaEpsilon = epsilon;
+  }
+  void NativeLearner::setMeanFile(std::string fn){
+    rudra::MLPparams::_meanFile = fn;
+    //    NativeLearner::setMoM(0.0);
+    //    NativeLearner::setLRMult(2);
+  }
+
+  void NativeLearner::setSeed(long id, int seed, int defaultSeed) {
+    if (seed != defaultSeed) {
+      rudra::MLPparams::_randSeed=seed;
+      srand(seed);
+    } else {
+      struct timeval start;
+      gettimeofday(&start, NULL);
+      unsigned int sd = (unsigned int) ((float) start.tv_usec / (float)( (id+1)*(id+1) ));
+      srand(sd);
+    }
+  }
+
+  void NativeLearner::setMoM(float mom) {
+    rudra::MLPparams::_mom = mom;    
+  }
+
+  void NativeLearner::setLRMult(float mult) {
+    rudra::MLPparams::_lrMult = mult;
+  }
+
+  void NativeLearner::setWD() {
+    rudra::MLPparams::setWD();
+  }
+
+  void NativeLearner::initFromCFGFile(std::string confName) {
+    rudra::MLPparams::initMLPparams(confName);
+  }
+  // end statics
+
+  NativeLearner::NativeLearner(long id) :
+    pid(id),
     trainSC(NULL),
-    testSC(NULL),
-    NUM_LEARNER(0),
-    NUM_MB_PER_EPOCH(0),
-    testErr(-1.0f),
     learner_handle(NULL)
   {}
 
-  NativeLearner::~NativeLearner() {
+    void NativeLearner::cleanup() {
     // TODO: destroy the learner here
     if (learner_handle)
       dlclose(learner_handle);
-  }
-
-  void NativeLearner::setMeanFile(std::string fn){
-    rudra::MLPparams::_meanFile = fn;
-    rudra::MLPparams::_mom = 0.0;
-    rudra::MLPparams::_lrMult =2;
-  }
-
-  void NativeLearner::initNativeLand(long id, const char* confName,
-                                     long numLearner){
-    // step 1 place id, seed random number generator
-    pid = id;
-    struct timeval start;
-    gettimeofday(&start, NULL);
-    unsigned int seed = (unsigned int) ((float) start.tv_usec / (float)( (id+1)*(id+1) ));
-    srand(seed);
-    // step 2 init the configuration
-    //    rudra::Logger::setLoggingLevel(INFO);
-    cfgFile = std::string(confName);
-    rudra::MLPparams::initMLPparams(cfgFile);
-
-    // step 3 init numLearner
-    NUM_LEARNER = numLearner;
-
-    // step 4 initialize NUM_MB_PER_EPOCH e.g., ParamServer.cpp:16-23, at most do L+1/L amount of work
-    int tmpMBPerEpoch = rudra::MLPparams::_numTrainSamples / rudra::MLPparams::_batchSize;
-    int q = tmpMBPerEpoch / numLearner;
-    int r = tmpMBPerEpoch % numLearner;
-    if(r == 0){
-	NUM_MB_PER_EPOCH = tmpMBPerEpoch;
-    }else{
-	NUM_MB_PER_EPOCH = (q+1) * numLearner;
+        if (trainSC != NULL) delete trainSC;
     }
 
+// write the output per checkptinterval or at the end of job 
+  void NativeLearner::checkpointIfNeeded(int whichEpoch) {
+// TODO
+/*
+    int chkptInterval = rudra::MLPparams::_chkptInterval;
+    int epochNum = rudra::MLPparams::_numEpochs;
+    std::string jobID = rudra::MLPparams::_jobID;
+
+    if ((chkptInterval != 0 && whichEpoch % chkptInterval == 0) || whichEpoch == epochNum) {
+      std::string outputFileName = "";
+      if (whichEpoch == epochNum) {
+        outputFileName = jobID + ".final" + ".h5";
+      } else {
+        std::stringstream ss;
+        ss << whichEpoch;
+        outputFileName = jobID + ".epoch." + ss.str() + ".h5";
+      }
+      std::cout << "[Tester] Writing weights to " << outputFileName << std::endl;
+      nn->writeParamsH5(outputFileName);
+      if (psu->solverType==rudra::ADAGRAD)
+        psu->chkptAdaGrad("ada"+outputFileName);
+    }
+*/
+  }
+
+/**
+ * init as learner agent
+ */
+void NativeLearner::initAsLearner(std::string weightsFile, std::string solverType) {
+    initNetwork(weightsFile);
+
+    // initialize GPFS Sample client for reading training and test data
+    char agentName[21];
+    sprintf(agentName, "LearnerAgent %6ld", pid);
+    trainSC = new rudra::GPFSSampleClient(std::string(agentName), false,
+        new rudra::UnifiedBinarySampleReader(rudra::MLPparams::_trainData, 
+                                             rudra::MLPparams::_trainLabels, 
+                                             rudra::RudraRand(pid, pid)));
+
+}
+
+void NativeLearner::initAsTester(long placeID, std::string solverType) {
+    initNetwork("");
+}
+
+/**
+ * initialize the network
+ */
+  int NativeLearner::initNetwork(std::string weightsFile){
     // For now use a constant, make this configurable later on.
     learner_handle = dlopen("theano", RTLD_LAZY|RTLD_LOCAL);
 
@@ -92,56 +169,7 @@ namespace xrudra {
     LOAD_SYM(learner_updweights);
 
 #undef LOAD_SYM
-  }
 
-/**
- * added on Aug 12, 2015, to support compatible weights update as in c++ code
- */
-void NativeLearner::initPSU(std::string _solverType){
-  // vj: For Theano we need to figure out the right way to bring in the code from PSUUtils
-  // commenting out for now. TODO: Discuss with Arnaud.
-  /*
-// step 5, initilized PSU
-    if(_solverType.compare("sgd") == 0){
-	solverType = rudra::SGD;
-    }else if(_solverType.compare("adagrad") == 0){
-	solverType = rudra::ADAGRAD;
-    }else{
-	std::cerr<<"incorrect solver type specified, going to use SGD solver type instead."<<std::endl;
-    }
-    assert(nn != NULL);
-    psu = new rudra::PSUtils(nn, solverType);
-  */
-}
-
-/**
- * init as learner agent
- */
-void NativeLearner::initAsLA(bool isReconciler){
-    initNetwork(isReconciler);     // init network
-   // added on May 1, 2015 to init minibatch
-    initXY();
-    initTrainSC();
-}
-
-void NativeLearner::initXY(){
-    minibatchX = rudra::MatrixContainer<float>(rudra::MLPparams::_numInputDim, rudra::MLPparams::_batchSize);
-    minibatchY = rudra::MatrixContainer<float>(rudra::MLPparams::_numClasses, rudra::MLPparams::_batchSize);
-}
-
-
-void NativeLearner::initTrainSC(){
-    char agentName[21];
-    sprintf(agentName, "LearnerAgent %6ld", pid);
-    trainSC = new rudra::GPFSSampleClient(std::string(agentName), false,
-        new rudra::UnifiedBinarySampleReader(rudra::MLPparams::_trainData, rudra::MLPparams::_trainLabels, rudra::RudraRand(pid, pid)));
-}
-
-/**
- * initialize the network
- */
-int NativeLearner::initNetwork(bool isReconciler){
-  // TODO: what does isReconciler means?
   struct param *params = new struct param[rudra::MLPparams::MLPCfg.size()];
   size_t i = 0;
   int res;
@@ -161,100 +189,103 @@ int NativeLearner::initNetwork(bool isReconciler){
 
   delete[] params;
   return res;
-}
+  }
 
 int NativeLearner::getNetworkSize() {
   return learner_netsize(learner_data);
 }
 
-void NativeLearner::loadMiniBatch(){
-    trainSC->getLabelledSamples(minibatchX, minibatchY);
+float NativeLearner::trainMiniBatch() {
+    rudra::MatrixContainer<float> minibatchX(rudra::MLPparams::_numInputDim, rudra::MLPparams::_batchSize);
+    rudra::MatrixContainer<float> minibatchY(rudra::MLPparams::_numClasses, rudra::MLPparams::_batchSize);
+    float trainMBErr = learner_train(learner_data, rudra::MLPparams::_batchSize,
+                                minibatchX.buf, rudra::MLPparams::_numInputDim,
+                                minibatchY.buf, rudra::MLPparams::_numClasses);
+    return trainMBErr;
 }
 
-float NativeLearner::trainMiniBatch(){
-  // TODO clarify where to GC the minibatches. The learner code doesn't do it.
-  trainMBErr = learner_train(learner_data, rudra::MLPparams::_batchSize,
-                             minibatchX.buf, rudra::MLPparams::_numInputDim,
-                             minibatchY.buf, rudra::MLPparams::_numClasses);
-  return trainMBErr;
+void NativeLearner::getGradients(float *gradients) {
+    learner_getgrads(learner_data, gradients);
 }
 
-void NativeLearner::getGradients(float *updates) {
-  learner_getgrads(learner_data, updates);
-}
-
-void NativeLearner::accumulateGradients(float *updates) {
-  learner_accgrads(learner_data, updates);
+void NativeLearner::accumulateGradients(float *gradients) {
+    learner_accgrads(learner_data, gradients);
 }
 
 /**
  * update learning rate
  */
 void NativeLearner::updateLearningRate(long curEpochNum){
-  learner_updatelr(learner_data, rudra::MLPparams::_lrMult*rudra::MLPparams::LearningRateMultiplier::_lr[curEpochNum]); // compatible with update learning rate in the new scheme
+// compatible with update learning rate in the new scheme
+    std::cout << "NativeLearner::updateLearningRate pid " << pid
+        << " epoch " << curEpochNum << " learning rate " 
+        << rudra::MLPparams::_lrMult*rudra::MLPparams::LearningRateMultiplier::_lr[curEpochNum]
+        << std::endl;
+  learner_updatelr(learner_data, rudra::MLPparams::_lrMult*rudra::MLPparams::LearningRateMultiplier::_lr[curEpochNum]);
 }
 
-
-//////////////////// methods on the side of param server ///////////////
-
 void NativeLearner::serializeWeights(float *weights){
-  learner_getweights(learner_data, weights);
+    learner_getweights(learner_data, weights);
 }
 
 void NativeLearner::deserializeWeights(float *weights){
-  learner_setweights(learner_data, weights);
+    learner_setweights(learner_data, weights);
 }
 
 
 /**
- * assuming this call is always
- */
+ * assuming this call is always 
+
 
 #define UU_NOP_FLAG  1 // just plain sum update
 #define UU_SMB_FLAG 2 // finish a "super mb" (i.e., super mini-batch size)
-#define UU_EPOCH_FLAG 4 // finish the entire epoch (now the time to send a test to test server)
-
+#define UU_EPOCH_FLAG 4 // finish the entire epoch (now the time to send a test to test server) 
+ */
 
 /**
  *
  */
-void NativeLearner::acceptGradients(float *weights, size_t numMB){
+void NativeLearner::acceptGradients(float *gradients, size_t numMB){
   // This code needs to accept gradients generated remotely and use them
   // to update the weights.
   // TODO: This is where the update rule, e.g. adagrad is important.
-  learner_updweights(learner_data, weights, numMB);
+  learner_updweights(learner_data, gradients, numMB);
 }
 
-  // Needed for the tester.
-
-
-float NativeLearner::testOneEpoch(float *weights){
-  /*
-  rudra::Network* nn = rudra::Network::readFromConfigFile(rudra::MLPparams::MLPCfg["layerCfgFile"]);
-
-  //    rudra::Network *nn = new rudra::Network(rudra::MLPparams::MLPCfg["layerCfgFile"],
-  //				       rudra::MLPparams::MLPCfg["logDir"] + "log");
-      nn->deserialize(weights);
-      std::cout<<"[in native land] before testing network, network size: "<<nn->networkSize<<std::endl;
-      testErr = nn->testNetwork(testData, testLabels);
-      std::cout<<"[in naitve land] after testing network, testErr: "<<testErr<<std::endl;
-      delete nn;
-      return testErr;
-  */
+float NativeLearner::testOneEpochSC(float *weights, size_t numTesters) {
+/*
+    char agentName[21];
+    sprintf(agentName, "TestClient %6ld", pid);
+    size_t batchSize = std::min(rudra::MLPparams::_numTestSamples,
+                                rudra::MLPparams::_batchSize);
+    size_t numMB = std::max((size_t) 1, rudra::MLPparams::_numTestSamples / batchSize);
+    size_t mbPerLearner = std::max((size_t) 1, numMB / numTesters);
+    size_t startMB = pid * mbPerLearner;
+    size_t numSamplePerLearner = rudra::MLPparams::_numTestSamples / numTesters + 1;
+    float totalTestErr = 0.0f;
+    if (startMB < numMB) {
+        size_t cursor = startMB * rudra::MLPparams::_batchSize;
+        rudra::GPFSSampleClient testSC(std::string(agentName), true, 
+            new rudra::UnifiedBinarySampleSeqReader(rudra::MLPparams::_testData, 
+                                                    rudra::MLPparams::_testLabels, 
+                                                    numSamplePerLearner, cursor));
+        nn->deserialize(weights);
+        rudra::MatrixContainer<float> minibatchX(rudra::MLPparams::_batchSize, rudra::MLPparams::_numInputDim);
+        rudra::MatrixContainer<float> minibatchY(rudra::MLPparams::_batchSize, testSC.getSizePerLabel());
+        for (size_t i = 0; i < mbPerLearner; i++) {
+          testSC.getLabelledSamples(minibatchX.buf, minibatchY.buf);
+          totalTestErr += nn->testNetworkMinibatch(minibatchX, minibatchY);
+        }
+    }
+    float testError = totalTestErr / mbPerLearner;
+    // cosmetic changes, to return a percentage, instead of a fraction
+    return testError * 100;
+*/
   // TODO: Arnaud. Need to flesh this out for Theano. This code will instantiate the given network
   // with the given weights, and then run the network on the given tests to report the test score.
   return 0.0;
-}
-
-float NativeLearner::testOneEpoch(){
-  //  testErr = nn->testNetwork(testData, testLabels);
-  //  return testErr;
-}
-
-void NativeLearner::initTestSC(long id, size_t numLearner) { }
-
-float NativeLearner::testOneEpochSC(float *weights){
-    return 0.0;
-}
+  }
 
 }
+
+

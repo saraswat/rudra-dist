@@ -1,11 +1,11 @@
 package xrudra;
-
 import x10.compiler.NonEscaping;
 
 import xrudra.util.Logger;
 import xrudra.util.Timer;
 import xrudra.util.SwapBuffer;
 import xrudra.util.BBuffer;
+import xrudra.util.BlockingRXchgBuffer;
 
 import x10.util.concurrent.AtomicBoolean;
 import x10.util.Team;
@@ -13,20 +13,37 @@ import x10.io.Unserializable;
 import x10.compiler.Pinned;
 
 @Pinned public class Learner(confName: String, mbPerEpoch:UInt, spread:UInt, 
-                     profiling:boolean, done:AtomicBoolean, 
+                     profiling:boolean,
                      nLearner: NativeLearner, 
-                     team:Team, logger:Logger, lt:Int) implements Unserializable {
+                     team:Team, logger:Logger, lt:Int,
+                     solverType:String) implements Unserializable {
     
-    static public def makeNativeLearner(confName:String, 
-                                        solverType:String, 
-                                        meanFile:String, isReconciler:Boolean):NativeLearner {
-        val nl = new NativeLearner();
-        if (meanFile!=null) nl.setMeanFile(meanFile);
-        nl.initNativeLand(here.id, confName, Place.numPlaces());
-        nl.initAsLA(isReconciler);
-        nl.initPSU(solverType);
+    public static def initNativeLearnerStatics(confName:String, jobDir:String, meanFile:String,
+                   seed:Int, mom:Float, lrmult:Float, 
+                   adaDeltaRho:Float, adaDeltaEpsilon:Float,
+                   ln:Int) {
+        NativeLearner.setLoggingLevel(ln);
+        if (jobDir != null) NativeLearner.setJobDir(jobDir);
+        if (meanFile!=null) NativeLearner.setMeanFile(meanFile);
+        NativeLearner.setAdaDeltaParams(adaDeltaRho, adaDeltaEpsilon, 
+                                        Rudra.DEFAULT_ADADELTA_RHO, Rudra.DEFAULT_ADADELTA_EPSILON);
+        NativeLearner.setSeed(here.id, seed, Rudra.DEFAULT_SEED);
+        if (mom != Rudra.DEFAULT_MOM) NativeLearner.setMoM(mom);
+        if (lrmult != Rudra.DEFAULT_LRMULT) NativeLearner.setLRMult(lrmult);
+
+        // WD created in common file system, only one place must do it.
+        if (here.id==0) NativeLearner.setWD(); // must come after jobDir is set.
+
+        // now after the statics are set from command line, 
+        // read in parameters from given cfg file.
+        NativeLearner.initFromCFGFile(confName);
+    }
+    public static def makeNativeLearner(weightsFile:String, solverType:String):NativeLearner {
+        val nl = new NativeLearner(here.id);
+        nl.initAsLearner(weightsFile, solverType);
         return nl; 
     } 
+
     static def getNetworkSize(nl:NativeLearner):UInt = nl.getNetworkSize() as UInt;
 
     val startTime = System.nanoTime();
@@ -37,7 +54,11 @@ import x10.compiler.Pinned;
     val P = Place.numPlaces();
     val networkSize = getNetworkSize(nLearner);
     val size = networkSize+1;
+    val numEpochs = nLearner.getNumEpochs() as UInt;
+    val maxMB = (numEpochs * mbPerEpoch) as UInt;
     val cgTimer = new Timer("Compute gradient time:");
+    val weightTimer = new Timer("Weight update Time:");
+
     public def getNetworkSize():UInt = getNetworkSize(nLearner);
 
     public def acceptGradients(delta:Rail[Float], numMB:UInt):void {
@@ -52,11 +73,7 @@ import x10.compiler.Pinned;
         nLearner.deserializeWeights(w);
     }
 
-    public def loadMiniBatch():void {
-
-        nLearner.loadMiniBatch();
-
-    }
+    public def getMBSize() = nLearner.getMBSize();
     
     public def trainMiniBatch():Float {
         val result = nLearner.trainMiniBatch();
@@ -67,38 +84,37 @@ import x10.compiler.Pinned;
         Load, or accumulate gradients in cg after training a minibatch.
      */
     public def computeGradient(cg:TimedGradient):void {
-            val ts = timeStamp;
-            cgTimer.tic();
-            // Train!
-            loadMiniBatch();             
-
-            val e = trainMiniBatch();
-            // Get gradients from native learner, mixing them into old gradients, 
-            // if they are not stale
-            val stale = (cg.timeStamp+spread < ts);
-            if (cg.loadSize() == 0un) {
+        val ts = timeStamp;
+        cgTimer.tic();
+        // Train!
+        val e = trainMiniBatch();
+        // Get gradients from native learner, mixing them into old gradients, 
+        // if they are not stale
+        val stale = (cg.timeStamp+spread < ts);
+        if (cg.loadSize() == 0un) {
+            cg.timeStamp = timeStamp;
+        } else {
+            if (stale) {
+                logger.warning(()=>"Learner: dropped old computed gradient " + cg);
                 cg.timeStamp = timeStamp;
+                cg.setLoadSize(0un);
             } else {
-                if (stale) {
-                    logger.warning(()=>"Learner: dropped old computed gradient " + cg);
-                    cg.timeStamp = timeStamp;
-                    cg.setLoadSize(0un);
-                } else {
-                    // Take the min here because compG may have accumulated
-                    // gradients from past incarnations.
-                    if (ts != cg.timeStamp)
-                        logger.info(()=> "Gradient "+cg+" will be mixed with gradient generated at " + ts);
+                // Take the min here because compG may have accumulated
+                // gradients from past incarnations.
+                if (ts != cg.timeStamp)
+                    logger.info(()=> "Gradient "+cg+" will be mixed with gradient generated at " + ts);
                 }
             }
             val cgsz = cg.loadSize();
             assert ((cgsz==0un && cg.timeStamp==ts)||(cgsz>0un && cg.timeStamp+spread>=ts))
                 : "Learner: old computed gradient " + cg + " is stale at time " + ts + " and still alive.";
-            getGradients(cg.grad);    
-            logger.info(()=>"Learner: produced " + cg + " at time=" + ts);
-            cgTimer.toc();
-            if (here.id==0) 
-                logger.notify(()=>"Learner: train error=" + e
-                              + " at time=" + ts + "(" + cgTimer.lastDurationMillis()+" ms)");
+            //        logger.info(()=> "Learner: retrieving gradient");
+        getGradients(cg.grad);    
+        //        logger.info(()=>"Learner: produced " + cg);
+        cgTimer.toc();
+        if (here.id==1) 
+            logger.notify(()=>"Learner: train error=" + e
+                          + " at time=" + ts + "(" + cgTimer.lastDurationMillis()+" ms)");
     }
     public def deliverGradient(cg:TimedGradient, 
                                fromLearner:SwapBuffer[TimedGradient]):TimedGradient {
@@ -146,36 +162,39 @@ import x10.compiler.Pinned;
         logger.info(()=>"Learner: processed network i/p " + g);
     }
 
-    def getTotalMBProcessed():UInt = totalMBProcessed;
+    public def getTotalMBProcessed():UInt = totalMBProcessed;
     var epochStartTime:Long = 0;
-    public class TestManager { // instance created at here.id==0
-        val toTester:SwapBuffer[TimedWeight] = SwapBuffer.make[TimedWeight](false, new TimedWeight(networkSize));
-        var weights:TimedWeight= new TimedWeight(networkSize);
+
+    public class TestManager(noTest:Boolean, solverType:String) { // instance created at here.id==0
+        val toTester = new BlockingRXchgBuffer[TimedWeightWRuntime](new TimedWeightWRuntime(networkSize));
+        var weights:TimedWeightWRuntime= new TimedWeightWRuntime(networkSize);
         var lastTested:UInt=0un;
         def initialize() {
-            async new Tester(confName, new Logger(lt)).run(networkSize, toTester);
+            async new Tester(confName, new Logger(lt), noTest, solverType).run(networkSize, toTester);
         }
-        def touch():void {
-            // At place 0: Test for epoch transition, try to get a Tester to run with these weights
-            val thisEpoch = (getTotalMBProcessed()/mbPerEpoch);
-            if (here.id == 0 && thisEpoch > epoch) {
-                val epochEndTime = System.nanoTime();
-                val timeTaken = (epochEndTime-epochStartTime)/(1000.0*1000.0);
-                logger.emit(()=>"Learner: Epoch "  + epoch + " took " + timeTaken + " msec");
-                epoch = thisEpoch;
-                epochStartTime=epochEndTime;
-                val w = weights;
-                weights.timeStamp = epoch;
-                if (toTester.needsData()) {
-                    serializeWeights(weights.weight);
-                    val result = toTester.put(weights),accepted=result!=weights;
-                    if (accepted) lastTested=epoch;
-                    logger.info(()=>"Learner: Tester "+(accepted?"accepted " : "did not accept ") + w);
-                    weights = result;
-                } else {
-                    logger.info(()=>"Learner: Tester too busy to accept " + w);
-                }
-            }
+        def touch() { touch(null); }
+        def touch(var tw:TimedWeight):void {
+            // Called by place 0 learner or PS: Test for epoch transition.
+            // Try to get a Tester to run with these weights
+            val ts = tw==null? getTotalMBProcessed() : tw.timeStamp();
+            val thisEpoch = ts/mbPerEpoch;
+            if (thisEpoch <= epoch) return;
+            val oldEpoch = epoch;
+            val epochEndTime = System.nanoTime();
+            val epochRuntime = epochEndTime-epochStartTime;
+            val timeTaken = Timer.time(epochRuntime);
+            //            logger.emit(()=>"Learner: Epoch "  + oldEpoch + " took " + timeTaken);
+            epoch = thisEpoch;
+            epochStartTime=epochEndTime;
+            if (tw == null) serializeWeights(weights.weightRail());
+            else  Rail.copy(tw.weightRail(), weights.weightRail());
+            weights.setTimeStamp(oldEpoch);
+            weights.setRuntime(epochRuntime/(1000*1000)); // in ms.
+            val w = weights;
+            logger.emit(()=>"Learner: Pinging tester with "  + w);
+            weights = toTester.put(weights);
+            if (weights != w) lastTested=oldEpoch;
+            logger.info(()=>"Learner: Tester "+(weights!=w?"accepted " : "did not accept ")+w);
         }
         def finalize() {
             if (lastTested < epoch) { // make sure u test the last weights
@@ -183,21 +202,56 @@ import x10.compiler.Pinned;
                 serializeWeights(weights.weight);
                 toTester.put(weights);
             }
-            toTester.put(TimedWeight.POISON);
+            toTester.put(TimedWeightWRuntime.POISON);
         }
     } // TestManager
 
-    def initWeights() {
+    /** 
+        Ensure that all learners start with the same initial weight. Should not
+        be called if weightsFile was specified -- then we load weights from the 
+        weightsFile in any case.
+     */
+    public def initWeightsIfNeeded(weightsFile:String):Rail[Float] {
+        if (weightsFile == null || weightsFile.equals("")) {
+            logger.info(()=>"Learner: starting initWeights.");
+            return initWeights();
+        }
+        return null;
+    }
+    public def initWeights():Rail[Float] {
         // learner 0 broadcast weights, to make sure that we start from the same 
         val ns = networkSize as Long;
         val initW:Rail[Float] = new Rail[Float](ns);
-        if(here.id == 0 ){
-            serializeWeights(initW); // place zero serialize weights
-            team.bcast(Place(0), initW, 0l, new Rail[Float](ns), 0l, ns);
-        }else{
+        if (here.id == 0)serializeWeights(initW); // place zero serialize weights
+        try {
+            logger.info(()=>"Learner:entering initWeight bcast.");
             team.bcast(Place(0), initW, 0l, initW, 0l, ns);
-            deserializeWeights(initW);
+        }catch (z: Error) {
+            logger.error(()=>"Learner.initWeights: error in bcast! " + z);
+            z.printStackTrace();
+            throw new Error("Bailing wire and chewing gum. 1");
+        } catch (z: CheckedThrowable) {
+            logger.error(()=>"Learner.initWeights: error in bcast! " + z);
+            z.printStackTrace();
+            throw new Error("Bailing wire and chewing gum");
         }
+        logger.info(()=>"Learner:exited initWeight bcast.");
+        if (here.id != 0) deserializeWeights(initW);
+        return initW;
+    }
+    public def acceptWeights(cw:TimedWeightI) {
+        acceptWeights(cw, System.nanoTime());
+    }
+    public def acceptWeights(cw:TimedWeightI, startTime:Long) {
+        assert (cw.timeStamp() > timeStamp): "Learner:acceptWeights called with older "
+            + cw + " (time " + timeStamp+")";
+        logger.info(()=>"Learner: accepting weights " + cw);
+        val includeMB = cw.loadSize();
+        timeStamp = cw.timeStamp();
+        totalMBProcessed += includeMB;
+        deserializeWeights(cw.weightRail());
+        weightTimer.addDuration(System.nanoTime()-startTime);
+        logger.info(()=>"Learner: accepted weights " + cw);
     }
 }
 // vim: shiftwidth=4:tabstop=4:expandtab

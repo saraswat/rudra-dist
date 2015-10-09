@@ -14,10 +14,8 @@
 #define RUDRA_MATH_MATRIXCONTAINER_H_
 
 #include "rudra/util/defs.h"
-#include "rudra/util/Tracing.h"
 
 #include "rudra/util/Checking.h"
-#include "rudra/util/Descriptor.h"
 #include <cstdlib>
 #include <cassert>
 #include <cstring>

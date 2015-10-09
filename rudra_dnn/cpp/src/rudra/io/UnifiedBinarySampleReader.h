@@ -9,31 +9,36 @@
 #define UNIFIEDBINARYSAMPLEREADER_H_
 
 #include "rudra/io/SampleReader.h"
-#include "rudra/util/MatrixContainer.h"
 #include "rudra/util/RudraRand.h"
-#include <cstdlib>
+#include <string>
+#include <vector>
+
 namespace rudra {
 enum BinFileType {CHAR, INT, FLOAT, INVALID};
 class UnifiedBinarySampleReader: public SampleReader {
 public:
-	const size_t sizePerImg;
-	size_t sizePerLabel;
-
 	std::string tdFile; // training data file, GPFS can hold large enough data
 	std::string tlFile; // training label file
 	BinFileType tdFT; // training data file type, added July 13, 2015
 	BinFileType tlFT; // training label file type, added July 13, 2015
-	RudraRand rr;
+
 	UnifiedBinarySampleReader(std::string sampleFileName, std::string labelFileName, RudraRand rr);
 	~UnifiedBinarySampleReader();
-	void checkFiles();// to check if files exist
-	void initFileTypes();
+
 	std::string getFileExt(const std::string& s);
 	BinFileType lookupFileType(const std::string& s);
-	void readLabelledSamples(size_t numSamples, MatrixContainer<float> &X,
-			MatrixContainer<float>& Y);
-	void setLabelDim();
+	void readLabelledSamples(const size_t numSamples, float* X, float* Y);
 
+
+protected:
+	void retrieveData(const size_t numSamples, const std::vector<size_t>& idx,
+			float* X, float* Y);
+private:
+	RudraRand rr;
+
+	void checkFiles();// to check if files exist
+	void initFileTypes();
+	void initSizePerLabel();
 };
 } /* namespace rudra */
 

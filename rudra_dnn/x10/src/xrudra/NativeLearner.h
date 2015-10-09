@@ -9,39 +9,97 @@
 #undef X10_LANG_FLOAT_H_NODEPS
 #include <x10/lang/Rail.h>
 
-#include <rudra/MLPparams.h>
 #include <rudra/learner.h>
-// #include <rudra/Network.h>
-#include <rudra/util/MatrixContainer.h>
-#include <rudra/io/GPFSSampleClient.h> // x10-impl always assumes GPFSSampleClient
-
 #include <cstdlib>
 #include <cstring>
 #include <sys/time.h>
+
+namespace rudra {
+    class GPFSSampleClient;
+}
 
 namespace xrudra {
   class NativeLearner {
 
   public:
-    NativeLearner();
-    ~NativeLearner();
-    NativeLearner* _make();
+    NativeLearner(long id);
+    void cleanup(); // X10 native integration can't call C++ destructors
 
-    long pid;    
-    // Only for Native Rudra learner
-    //    rudra::Network* nn;
-    float trainMBErr;
-    rudra::MatrixContainer<float> minibatchX;    
-    rudra::MatrixContainer<float> minibatchY;    
-    rudra::MatrixContainer<float> Data;    
-    rudra::MatrixContainer<float> Labels;    
-    rudra::MatrixContainer<float> testData;    
-    rudra::MatrixContainer<float> testLabels;    
-    rudra::GPFSSampleClient* trainSC;    
-    rudra::GPFSSampleClient* testSC;
-    int NUM_LEARNER;
-    int NUM_MB_PER_EPOCH;
+    long getNumEpochs();
+    long getNumTrainingSamples();
+    long getMBSize();
 
+    // static methods section. These methods are called from static 
+    // Learner.initNativeStatics, once in each place. 
+
+    /** Set the working directory, for various files to be written out, e.g. weightsFile.*/
+    static void setLoggingLevel(int level);
+    static void setJobDir(std::string jobDir);
+    static void setMeanFile(std::string _fileName);
+    static void setAdaDeltaParams(float rho, float epsilon, float drho, float depsilon);
+    static void setSeed(long id, int seed, int defaultSeed);
+    static void setMoM(float f);
+    static void setLRMult(float mult);
+    static void setWD();
+    static void initFromCFGFile(std::string confName);
+    // end of static methods
+
+    void initAsLearner(std::string weightsFile, std::string solverType);
+    void initAsTester(long placeID, std::string solverType);
+
+    int getNetworkSize();
+
+    float trainMiniBatch();
+
+    /**
+     * Copy the most recent set of computed gradients into the array provided.
+     * The gradients array must be of size >= [getNetworkSize()].
+     */
+    void getGradients(float *gradients);
+
+    /**
+     * Sum the most recent set of computed gradients into the array provided.
+     * The gradients array must be of size >= [getNetworkSize()], and may
+     * contain previously computed gradients.
+     */
+    void accumulateGradients(float *gradients);
+
+    /** Output the parameters now into a file, if instructed by job configuration.
+        Examines the following parameters in MLPparams: _ckptInterval, _numEpochs,
+        _jobID. The parameters are printed out if this is the last epoch, or
+        if this epoch modulo chkptInterval is 0 (if ckptInterval > 0). The name of the
+        file is jobID.final.h5 or jobId.epoch.<whichEpoch>.h5, and it is placed in
+        current working dir, which is RUDRA_HOME/LOG/jobID/.
+
+        whichEpoch -- the current epoch
+     */
+    void checkpointIfNeeded(int whichEpoch);
+
+    /** 
+     * Copy the current set of weights into the array provided.
+     * The weights array must be of size >= [getNetworkSize()].
+     */
+    void serializeWeights(float *weights);
+
+    /** 
+     * Replace this learner's weights with the weights provided.
+     * The weights array must be of size >= [getNetworkSize()].
+     */
+    void deserializeWeights(float *weights);
+  
+    void updateLearningRate(long curEpochNum);
+
+    void acceptGradients(float *grad, size_t numMB);
+
+    /** 
+     * Initialize the network with the given weights, score your fraction
+     * of the test data, and return the result.
+     */
+    float testOneEpochSC(float *weights, size_t numTesters);
+
+private:
+    long pid;
+    rudra::GPFSSampleClient* trainSC;
     void *learner_handle;
     void *learner_data;
     learner_init_t *learner_init;
@@ -56,57 +114,11 @@ namespace xrudra {
     learner_setweights_t *learner_setweights;
     learner_updweights_t *learner_updweights;
 
-    std::string cfgFile;
-    float testErr;
-
-    //// methods shared by Param Server and Learner Agents
-    void initNativeLand(long id, const char* confName, long numLearner);
-    void initAsLA(bool isReconciler);
-    void initXY(); // added on May 1, 2015, X: minibatch training data, Y: minibatch label
-    void initTrainSC(); // added on May 1, 2015: init gpfs sample client
-    int initNetwork(bool isReconciler);
-    void initPSU(std::string _solverType);
-    void setMeanFile(std::string _fileName);
-    int getNetworkSize();
-
-    /**
-     * @return the parameter delta
+    /*
+     * Initialize the network, reading it from the config file. 
+     * weightFile: If non-empty, read the weights for the network from the given file.
      */
-    void loadMiniBatch();
-    float trainMiniBatch();
-    void  getGradients(float *updates);
-    void  accumulateGradients(float *updates);
-    float trainOneMBErr();
-
-    float testOneEpoch(float* weights); // added on May 5, 2015
-
-    /**
-     * @return test error after one epoch
-     */
-    float testOneEpoch();
-
-    void serializeWeights(float *weights);
-    void deserializeWeights(float *weights);
-  
-    void updateLearningRate(long curEpochNum);
-
-    ////// methods on the param server
-    void syncSum(float* delta, float multiplier);
-    void syncUpdate();
-    void asyncUpdate(float *delta, float multiplier);
-
-    // will be used by both hardsync and smart protocol, added on June 7, 2015
-    int unifiedUpdate(float* delta, float multiplier);
-    void acceptGradients(float *grad, size_t numMB);
-
-    ///////////////////// SS Section /////////////////////////////////
-
-    void initTestSC();
-    void initTestSC(long id, size_t numLearner);
-    float testOneEpochSC(float *weights);
-    long getTestNum();
-    //////////////////// end of SS Section //////////////////////////
-
+    int initNetwork(std::string weightsFile);
   };
 }
 #endif

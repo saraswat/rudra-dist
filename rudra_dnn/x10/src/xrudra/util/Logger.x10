@@ -42,6 +42,27 @@ public class Logger(level:Int) {
      */
     public static val EMIT=3n;
 
+    public def levelString():String=levelString(level);
+    public static def levelString(level:Int):String {
+        switch (level) {
+        case 0n: return "INFO";
+        case 1n: return "WARNING";
+        case 2n: return "NOTIFY";
+        case 3n: return "ERROR/EMIT";
+        }
+        return "??";
+    }
+
+    public static def nativeLevelString(level:Int):String {
+        switch (level) {
+        case 0n: return "INFO";
+        case 1n: return "WARNING";
+        case 2n: return "ERROR";
+        case 3n: return "FATAL";
+        }
+        return "??";
+    }
+
     //    public val baseTime=System.currentTimeMillis(); // time of creation
 
     def out(s:String) { 

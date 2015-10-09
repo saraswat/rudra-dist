@@ -2,9 +2,7 @@
 #include "rudra/io/SampleClient.h"
 #include "rudra/util/Logger.h"
 #include "rudra/util/Parser.h"
-#include "rudra/util/Tracing.h"
 #include <algorithm>
-//#include "rudra/platform/Misc.h"
 #include <iomanip>
 #include <iostream>
 #include <cmath>
@@ -14,8 +12,7 @@
 namespace rudra {
 const std::string MLPparams::paramList[] = { "trainData", "trainLabels",
 		"testData", "testLabels", "layerCfgFile", "testInterval", "meanFile", "chkptInterval", "numTrainSamples", "numTestSamples", "numInputDim",
-					     "numClasses", "numEpochs", "batchSize", // "platform", 
-					     "learningSchedule", "gamma", "beta", "lrFile", "epochs" };
+                "numClasses", "numEpochs", "batchSize", "learningSchedule", "gamma", "beta", "lrFile", "epochs" };
 
   const int MLPparams::paramNum = sizeof(MLPparams::paramList) / sizeof(*MLPparams::paramList);
 
@@ -35,7 +32,6 @@ const std::string MLPparams::paramList[] = { "trainData", "trainLabels",
   std::string MLPparams::_testLabels      = RUDRA_DEFAULT_STRING;
   
   uint32      MLPparams::_chkptInterval   = RUDRA_DEFAULT_INT;
-  uint32      MLPparams::_labelDim        = RUDRA_DEFAULT_INT;
   std::string MLPparams::_logDir          = RUDRA_DEFAULT_STRING;
   std::string MLPparams::_rudraHome       = RUDRA_DEFAULT_STRING;
   std::string MLPparams::_resFileName     = RUDRA_DEFAULT_STRING;
@@ -51,14 +47,16 @@ const std::string MLPparams::paramList[] = { "trainData", "trainLabels",
   std::vector<float> MLPparams::LearningRateMultiplier::_lr;
 
   bool        MLPparams::_isInference     = false;
-  //  Platform    MLPparams::_platform        = CPU;
 
-  // Parameters from command line are initialized to defaults to take effect if no value provided
+  // Parameters from command line are initialized to defaults to take effect
+  //  if no value provided
+  float        MLPparams::_adaDeltaRho     = 0.95;
+    float        MLPparams::_adaDeltaEpsilon = 1e-6;
   std::string  MLPparams::_givenFileName   = RUDRA_DEFAULT_STRING;   // -f (FIXME: split into cfg and network files)
   std::string  MLPparams::_restartFileName = RUDRA_DEFAULT_STRING;   // -r
   std::string  MLPparams::_jobID           = RUDRA_DEFAULT_STRING;   // -j 
   int          MLPparams::_randSeed        = 12345;      			 // -s (to initialize random number generator)
-  int          MLPparams::_sampleClient    = SC_NULL;                // -sc
+  int          MLPparams::_sampleClient    = 3;            		     // -sc
   float        MLPparams::_lrMult          = 1.0;                    // -mul
   std::string  MLPparams::_allowedGPU	   = RUDRA_DEFAULT_STRING;   // -gpu     default if no list given
   std::string  MLPparams::_meanFile		   = RUDRA_DEFAULT_STRING;   // -meanFile
@@ -234,11 +232,6 @@ void MLPparams::initMLPparams(std::string S) {
 		MLPparams::LearningRateMultiplier::_epochs.push_back(convert::string_to_T<int>(temp));
 	}
 
-	// If platform not specified then _platform retains initial value
-	// vj -- commenting out platform functionality
-	//	try {MLPparams::_platform = findPlatform(MLPparams::MLPCfg.at("platform"));}
-	//	catch (...) {}
-
 	//sanity check
 	if (MLPparams::_numTrainSamples == 0)
 		rudra::Logger::logFatal(
@@ -314,14 +307,6 @@ void MLPparams::setWD() {
 	MLPparams::_resFileName = MLPparams::_logDir + MLPparams::_jobID + ".OUT";
 }
 
-void MLPparams::setLabelDim(int i){
-
-//	if (i > MLPparams::_numClasses){
-//		rudra::Logger::logFatal("MLPparams::setLabelDim:: Label dim: " +convert::T_to_string(i) + " can not be more than numClasses: " + convert::T_to_string(MLPparams::_numClasses));
-//	}
-	MLPparams::_labelDim = i;
-}
-
 void MLPparams::readBinHeader(std::string fileName, int& r, int& c){
 
 	std::ifstream f1(fileName.c_str(), std::ios::in | std::ios::binary); //open file for reading in binary mode
@@ -351,107 +336,5 @@ void MLPparams::readBinHeader(std::string fileName, int& r, int& c){
 
 }
 
-
-  // Return argv[i++]
-  // In addition, check for errors
-  static std::string nextArg(int   &i,
-                             int    argc, 
-                             char*  argv[],
-                             int    whichVal) // flag? val1? val2?
-    throw (Exception)
-  {
-    switch (whichVal) {
-    case 0: 
-      RUDRA_CHECK(     i < argc, "Failed to test argc before getting next flag");
-      break;
-    case 1:
-      RUDRA_CHECK_USER(i < argc, "Missing value for option '"        << argv[i-1] << "'");
-      break;
-    case 2:
-      RUDRA_CHECK_USER(i < argc, "Missing second value for option '" << argv[i-2] << "'");
-      break;
-    default: 
-      RUDRA_CHECK(false, "");
-    }
-
-    switch (whichVal) {
-    case 0: 
-      RUDRA_CHECK_USER(*argv[i] == '-', "Expected a flag starting with '-', not " << argv[i]);
-      break;
-    default:
-      RUDRA_CHECK_USER(*argv[i] != '-', "Flag '" << argv[i] << "' where value expected");
-    }
-    
-    return std::string(argv[i++]);  // real work
-  }
-
-
-  // Parse command line given as argv, and assign results to MLPparams.
-  // Return true is successful, false if any errors
-  // It is intended that any main() function calls this utility, 
-  // which just does the parsing and error checking,
-  // and the caller from main() then checks if it got what it needs.
-
-  bool MLPparams::parseCommandLine(int   argc,
-                                   char *argv[])
-  {
-    std::string flag, val1;   // user gives:     -flag value1 [value2]
-
-    try { // parsing failures print message and throw exception
-    
-      for (int i = 1; i < argc; ) {
-        flag = nextArg(i, argc, argv, 0);
-        val1 = nextArg(i, argc, argv, 1);  // every flag needs
-
-        if      (flag == "-f")   		MLPparams::_givenFileName   =                             val1;
-        else if (flag == "-r")   		MLPparams::_restartFileName =                             val1;
-        else if (flag == "-j")   		MLPparams::_jobID           =                             val1;
-        else if (flag == "-s")   		MLPparams::_randSeed        = convert::string_to_T<int>(  val1);
-        else if (flag == "-sc")  		MLPparams::_sampleClient    = convert::string_to_T<int>(  val1);
-        else if (flag == "-mul") 		MLPparams::_lrMult          = convert::string_to_T<float>(val1);
-        else if (flag == "-gpu") 	        MLPparams::_allowedGPU      =                             val1;
-        else if (flag == "-meanFile") 	MLPparams::_meanFile		= val1;
-        else if (flag == "-solver") 	MLPparams::_solver 			= val1;
-        else if (flag == "-mom")		MLPparams::_mom				= convert::string_to_T<float>(val1);
-        else if (flag == "-printInterval") MLPparams::_printInterval= convert::string_to_T<int>	 (val1);
-        else if (flag == "-t")   { // e.g. -t timing 2
-          int val2 = convert::string_to_T<int>(nextArg(i, argc, argv, 2));
-          Tracing::set(val1, val2);  
-        }
-
-        else RUDRA_CHECK_USER(false, 
-                              "Invalid option -- '" << flag << "'");
-      }
-    } catch (Exception) {
-      // If parsing failed, message has been printed.
-      // Return false, allowing caller to handle the failure.
-      // This does not quite work because convert::string_to_T()
-      // exists rather than throw an exception.
-      return false;
-    }
-    return true;
-  }
-
-
-/*
-void MLPparams::writeParams() {
-	if (_resFile) {
-		_resFile << "\n";
-	NN.writeParamsH5(MLPparams::MLPCfg["logDir"]+"test.h5");
-	NN.writeParamsH5(MLPparams::MLPCfg["logDir"]+"test.h5");
-		_resFile << "########################################################"
-				<< std::endl;
-		_resFile << "# MLP params:" << std::endl;
-		_resFile << "# alpha decay   = " << MLPparams::_alphaDecay << std::endl;
-		_resFile << "# batchsize     = " << MLPparams::_batchSize << std::endl;
-
-		_resFile << "########################################################"
-				<< std::endl;
-	} else {
-		rudra::Logger::logFatal(
-				"MLPparams::writeParams()::Trouble writing to the output file...");
-	}
-}
-*/
 } /* namespace rudra */
 

@@ -22,7 +22,7 @@ MatrixContainer<T> readBinMat(std::string s) {
 		exit(EXIT_FAILURE);
 	}
 
-	size_t rows, cols;
+	uint32 rows, cols;
 	f1.read((char*) &rows, sizeof(uint32));
 	f1.read((char*) &cols, sizeof(uint32));
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
@@ -31,14 +31,14 @@ MatrixContainer<T> readBinMat(std::string s) {
 	cols = be32toh(cols);
 #endif
 
-	if (rows < 0 || cols < 0) {
+	if (rows == 0 || cols == 0) {
 		std::cout << "readBinMat: Invalid matrix dimensions:" << rows << " X "
 				<< cols << std::endl;
 		exit(EXIT_FAILURE);
 
 	}
 
-	MatrixContainer<T> res(rows, cols, _ZEROS); //, CPU);
+	MatrixContainer<T> res(rows, cols, _ZEROS);
 	f1.read((char*) res.buf, rows * cols * sizeof(T));
 
 	switch (sizeof(T)) {

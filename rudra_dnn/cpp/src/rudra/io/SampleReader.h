@@ -6,16 +6,18 @@
 #ifndef RUDRA_IO_SAMPLEREADER_H_
 #define RUDRA_IO_SAMPLEREADER_H_
 
-#include "rudra/util/MatrixContainer.h"
-#include "rudra/util/defs.h"
 #include <cstddef>
 
 namespace rudra {
 class SampleReader {
 public:
-	virtual void readLabelledSamples(size_t numSamples, MatrixContainer<float> &X,
-			MatrixContainer<float>& Y) = 0;
-	
+	const size_t sizePerSample;
+	size_t sizePerLabel; // should be const
+	SampleReader(const size_t sizePerSample) :
+			sizePerSample(sizePerSample) {
+	}
+
+	virtual void readLabelledSamples(const size_t numSamples, float* X, float* Y) = 0;
 };
 }
 

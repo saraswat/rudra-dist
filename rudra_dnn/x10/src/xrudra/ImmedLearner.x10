@@ -9,18 +9,19 @@ import x10.util.concurrent.Lock;
 import x10.util.Team;
 
 
-public class ImmedLearner extends Learner {
+public class ImmedLearner(noTest:Boolean) extends Learner {
 
-    public def this(confName:String, mbPerEpoch:UInt, spread:UInt, 
-                    profiling:Boolean, done:AtomicBoolean, 
+    public def this(confName:String, noTest:Boolean, mbPerEpoch:UInt, spread:UInt, 
+                    profiling:Boolean, 
                     nLearner:NativeLearner, 
-                    team:Team, logger:Logger, lt:Int) {
-        super(confName, mbPerEpoch, spread, profiling, done, nLearner, team, logger, lt);
+                    team:Team, logger:Logger, lt:Int, solverType:String) {
+        super(confName, mbPerEpoch, spread, profiling, nLearner, team, logger, lt, solverType);
+        property(noTest);
     }
 
     // method called by reconciler thread.
     val lock = new Lock();
-    def getTotalMBProcessed():UInt {
+    public def getTotalMBProcessed():UInt {
         try {
             lock.lock();
             return totalMBProcessed;
@@ -48,11 +49,11 @@ public class ImmedLearner extends Learner {
         acceptGradients(g.grad, includeMB);
         logger.info(()=>"Reconciler: delivered network gradient " + g + " to learner.");
     }
-    def run(fromLearner:SwapBuffer[TimedGradient]) {
+    def run(fromLearner:SwapBuffer[TimedGradient], done:AtomicBoolean) {
         logger.info(()=>"Learner: started.");
         var compG:TimedGradient = new TimedGradient(size); 
         compG.timeStamp = UInt.MAX_VALUE;
-        val testManager = here.id==0? (this as Learner).new TestManager() : null;
+        val testManager = here.id==0? (this as Learner).new TestManager(noTest, solverType) : null;
         if (testManager != null) testManager.initialize();
         val currentWeight = new TimedWeight(networkSize);
         initWeights();

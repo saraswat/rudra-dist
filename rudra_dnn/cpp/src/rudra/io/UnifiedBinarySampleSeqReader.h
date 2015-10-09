@@ -9,7 +9,7 @@
 #define UNIFIEDBINARYSAMPLESEQREADER_H_
 
 #include "rudra/io/UnifiedBinarySampleReader.h"
-#include "rudra/util/MatrixContainer.h"
+
 // added on May 19, 2015, to support bin reader for sequential reading
 namespace rudra {
 class UnifiedBinarySampleSeqReader: public UnifiedBinarySampleReader {
@@ -25,11 +25,9 @@ public:
 	UnifiedBinarySampleSeqReader(std::string sampleFileName, std::string labelFileName, size_t totalSampleNum, size_t cursor);
 	~UnifiedBinarySampleSeqReader();
 
-	void readLabelledSamples(size_t numSamples, MatrixContainer<float> &X,
-			MatrixContainer<float>& Y);
+	void readLabelledSamples(size_t numSamples, float* X, float* Y);
 
 	void setLabelDim();
-
 };
 } /* namespace rudra */
 

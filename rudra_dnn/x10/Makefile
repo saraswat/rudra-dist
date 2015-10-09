@@ -50,6 +50,12 @@ endif
 X10CXX_PREARGS += -cxx-prearg -I${RUDRA_HOME}/cpp/include -cxx-prearg -I${HDF5_INCLUDE_PATH}
 X10CXX_POSTARGS += -cxx-postarg -L${RUDRA_HOME}/cpp/lib -cxx-postarg -lrudra -cxx-postarg -L$(HDF5_LIB_PATH) -cxx-postarg -lhdf5 -cxx-postarg -lhdf5_cpp
 
+# vj need to add these for theano linkage.
+# TODO: Do this in a system generic way, this is obtained by
+# by splicing -cxx-postarg in between the terms returned by python2.7-config --ldflags
+# and quoting
+X10CXX_POSTARGS += -cxx-postarg -L/usr/lib/python2.7/config-x86_64-linux-gnu -cxx-postarg -L/usr/lib -cxx-postarg -lpthread -cxx-postarg -ldl  -cxx-postarg -lutil -cxx-postarg -lm  -cxx-postarg -lpython2.7 -cxx-postarg -Xlinker -cxx-postarg -export-dynamic -cxx-postarg "-Wl,-O1" -cxx-postarg "-Wl,-Bsymbolic-functions"
+
 ifeq ($(BLASLIB),ESSL)
     # p775, power8
     X10CXX_PREARGS += -cxx-prearg -D__essl__

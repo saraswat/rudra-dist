@@ -4,7 +4,6 @@
 
 #include "rudra/MLPparams.h"
 #include "rudra/io/GPFSSampleClient.h"
-#include "rudra/util/MatrixContainer.h"
 #include <cstring>
 #include <pthread.h>
 
@@ -12,8 +11,8 @@ namespace rudra {
 GPFSSampleClient::GPFSSampleClient(std::string name, bool threaded,
 		SampleReader* reader) :
 		clientName(name), threaded(threaded), sampleReader(reader), X(
-				MatrixContainer<float>(MLPparams::_numInputDim, MLPparams::_batchSize)), Y(
-				MatrixContainer<float>(MLPparams::_labelDim, MLPparams::_batchSize)), finishedFlag(
+				new float[MLPparams::_batchSize * reader->sizePerSample]), Y(
+				new float[MLPparams::_batchSize * reader->sizePerLabel]), finishedFlag(
 				false) {
 	this->init();
 }
@@ -66,28 +65,25 @@ void GPFSSampleClient:: producerThdFunc(void *args){
 
 }
 
-void GPFSSampleClient::getLabelledSamples(MatrixContainer<float> &samples,
-		MatrixContainer<float> &labels) {
+void GPFSSampleClient::getLabelledSamples(float* samples, float* labels) {
 	if (threaded) {
 		pthread_mutex_lock(&mutex);
 		while (count == 0) {
 			pthread_cond_wait(&fill, &mutex);
 		}
-		// consume()
-		samples = X;
-		labels = Y;
-		//memcpy(dMat->buf, X.buf, sizePerImg * sizeof(float) * mbSize); // dont forget float takes 4 bytes and multiplies with minibatch size! April 28, 2015
-		//memcpy(lMat->buf, Y.buf, sizePerLabel * sizeof(float) * mbSize);
+		memcpy(samples, X, MLPparams::_batchSize * sampleReader->sizePerSample * sizeof(float));
+		memcpy(labels, Y, MLPparams::_batchSize * sampleReader->sizePerLabel * sizeof(float));
+
 		count--; // don't forget the decrement count
 		pthread_cond_signal(&empty);
 		pthread_mutex_unlock(&mutex);
 	} else {
-		sampleReader->readLabelledSamples(MLPparams::_batchSize, X, Y);
-		samples = X;
-		labels = Y;
-		//memcpy(dMat->buf, X.buf, sizePerImg * sizeof(float) * mbSize); // dont forget float takes 4 bytes and multiplies with minibatch size! April 28, 2015
-		//memcpy(lMat->buf, Y.buf, sizePerLabel * sizeof(float) * mbSize);
+		sampleReader->readLabelledSamples(MLPparams::_batchSize, samples, labels);
 	}
+}
+
+size_t GPFSSampleClient::getSizePerLabel() {
+	return sampleReader->sizePerLabel;
 }
 
 GPFSSampleClient::~GPFSSampleClient() {
@@ -98,5 +94,7 @@ GPFSSampleClient::~GPFSSampleClient() {
 		pthread_mutex_unlock(&mutex);
 		pthread_join(producerTID, NULL); // join the producer thread
 	}
+	delete[] X;
+	delete[] Y;
 }
 } /* namespace rudra */
