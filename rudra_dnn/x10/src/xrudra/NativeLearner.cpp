@@ -251,4 +251,10 @@ float NativeLearner::testOneEpoch(){
   //  return testErr;
 }
 
+void NativeLearner::initTestSC(long id, size_t numLearner) { }
+
+float NativeLearner::testOneEpochSC(float *weights){
+    return 0.0;
+}
+
 }
