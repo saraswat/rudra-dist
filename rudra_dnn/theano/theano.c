@@ -25,7 +25,7 @@ static int init_python(void) {
     Py_InitializeEx(0);
     imp_array();
     if (PyErr_Occurred()) {
-      PyErr_Clear();
+      PyErr_PrintEx(1);
       return 1;
     }
   }
@@ -137,14 +137,14 @@ size_t learner_netsize(void *net) {
   if (PyLong_Check(size)) {
     res = PyLong_AsSsize_t(size);
     if (res == -1 && PyErr_Occurred()) {
-      PyErr_Clear();
+      PyErr_PrintEx(1);
       res = 0;
     }
 #if PY_MAJOR_VERSION < 3
   } else if (PyInt_Check(size)) {
     res = PyInt_AsSsize_t(size);
     if (res == -1 && PyErr_Occurred()) {
-      PyErr_Clear();
+      PyErr_PrintEx(1);
       res = 0;
     }
 #endif
@@ -184,6 +184,7 @@ static float _learner_call2(PyObject *net, const char *meth, size_t batchSize,
                       (void *)features, 4, NPY_ARRAY_IN_ARRAY, NULL);
   if (fdata == NULL) {
     fprintf(stderr, "Could not create features array");
+    PyErr_PrintEx(1);
     goto error;
   }
 
@@ -193,6 +194,7 @@ static float _learner_call2(PyObject *net, const char *meth, size_t batchSize,
                       (void *)targets, 4, NPY_ARRAY_IN_ARRAY, NULL);
   if (tdata == NULL) {
     fprintf(stderr, "Could not create targets array");
+    PyErr_PrintEx(1);
     goto error;
   }
 
@@ -203,7 +205,8 @@ static float _learner_call2(PyObject *net, const char *meth, size_t batchSize,
        always return something. The returned object needs to be DECREF'd
        and a NULL return value indicates an error happened. */
 
-    fprintf(stderr, "Error calling train function");
+    fprintf(stderr, "Error calling %s function", meth);
+    PyErr_PrintEx(1);
     goto error;
   }
   /* Make sure the python function did not keep references */
@@ -211,10 +214,12 @@ static float _learner_call2(PyObject *net, const char *meth, size_t batchSize,
   assert(tdata->ob_refcnt == 1);
 
   error = PyFloat_AsDouble(res);
-  if (error == -1.0f && PyErr_Occurred())
+  if (error == -1.0f && PyErr_Occurred()) {
+    PyErr_PrintEx(1);
     /* Yes this does not change anything, but if we ever add code
      * below it reduces the risk of bugs */
     goto error;
+  }
 
   /* Finally release all the objects we created.  This does not
      explicitely destroy theses objects, merely remove the reference
@@ -253,7 +258,7 @@ static void _learner_call1(void *net, const char *meth, float *data) {
                       4, NPY_ARRAY_OUT_ARRAY, NULL);
   if (udata == NULL) {
     // TODO: indicate error?
-    PyErr_Clear();
+    PyErr_PrintEx(1);
     return;
   }
 
@@ -264,7 +269,7 @@ static void _learner_call1(void *net, const char *meth, float *data) {
 
   if (res == NULL) {
     // TODO: indicate error?
-    PyErr_Clear();
+    PyErr_PrintEx(1);
     return;
   }
   Py_DECREF(res);
@@ -282,6 +287,7 @@ void learner_updatelr(void *net, float newLR) {
   PyObject *res;
   res = PyObject_CallMethod((PyObject *)net, "updatelr", "f", newLR);
   if (res == NULL) {
+    PyErr_PrintEx(1);
     // TODO: indicate error
     return;
   }
@@ -305,7 +311,7 @@ void learner_updweights(void *net, float *grads, size_t numMB) {
                       4, NPY_ARRAY_OUT_ARRAY, NULL);
   if (gdata == NULL) {
     // TODO: indicate error?
-    PyErr_Clear();
+    PyErr_PrintEx(1);
     return;
   }
 
@@ -317,7 +323,7 @@ void learner_updweights(void *net, float *grads, size_t numMB) {
 
   if (res == NULL) {
     // TODO: indicate error?
-    PyErr_Clear();
+    PyErr_PrintEx(1);
     return;
   }
   Py_DECREF(res);
