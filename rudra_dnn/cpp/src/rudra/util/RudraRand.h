@@ -12,7 +12,7 @@ namespace rudra{
 	int rank;
 	int threadid;
 	long getLong();
-        RudraRand(): dd({1,2,3}){}
+        RudraRand() {}
 	RudraRand(int rank, int threadid);
 	RudraRand(const RudraRand& rr);// copy constrcutor
 	
