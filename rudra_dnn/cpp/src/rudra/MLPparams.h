@@ -14,6 +14,7 @@
 #include <vector>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <endian.h>
 const time_t ctt = time(NULL);
 
 #define RUDRA_TIME asctime(localtime(&ctt))
