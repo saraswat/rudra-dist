@@ -23,7 +23,7 @@ ifeq ($(arch),ppc64)
     BLASLIB ?= ESSL
     X10CXX := $(X10CXX_BIN) -x10rt pami
 else
-    X10CXX := $(X10CXX_BIN) #-x10rt mpi
+    X10CXX := $(X10CXX_BIN) -x10rt mpi
     X10CXX_PREARGS += -cxx-prearg -std=c++0x
 endif
 

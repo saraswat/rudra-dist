@@ -24,10 +24,6 @@ OPT ?= -O3
 
 # Use the architecture of host machine to determine what compiler to use.
 # Set CXX and other environment variables expressing the choice.
-# Unfortunately, mpicxx does not use CXX to determine its compiler;
-# instead it uses the setitng inside mpic++-wrapper-data.txt.
-# Therefore you can use the parameter ARCH to force architecture consistent
-# with mpic++-wrapper-data.txt.
 
 ifdef ARCH
     arch=$(ARCH)
