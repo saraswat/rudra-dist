@@ -61,17 +61,20 @@ int learner_init(void **_net, struct param params[],
     PyObject *val = PyString_FromString(params[i].val);
     if (val == NULL)
       goto error;
-    if (strcmp(params[i].key, "modname"))
+    if (strcmp(params[i].key, "modelName")==0) {
       name = params[i].val;
+    }
     if (PyDict_SetItemString(pdict, params[i].key, val) == -1) {
       Py_DECREF(val);
       goto error;
     }
     Py_DECREF(val);
   }
-
-  if (name == NULL)
+  fprintf(stdout, "modelName is %s.\n", name);
+  if (name == NULL) {
+    fprintf(stdout, "modelName name is null: %s\n", name);
     goto error;
+  }
 
   /* This will load the module, but return an error if something else
      is using the import mechanism right now rather than wait
@@ -81,6 +84,8 @@ int learner_init(void **_net, struct param params[],
   if (mod == NULL) {
     fprintf(stderr, "Could not import module %s, make sure it is available in "
             "the python path.\n", name);
+    PyErr_Print();
+
     goto error;
   }
 

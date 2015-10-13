@@ -59,7 +59,7 @@ class Model(object):
                    for grad, gparam in zip(grads, gparams)]
 
         # This does not update values, only accumulate gradients
-        train = theano.function(inputs=[x, y], cost, updates=updates)
+        train = theano.function([x, y], cost, updates=updates)
 
         test = theano.function([x, y], cost)
 

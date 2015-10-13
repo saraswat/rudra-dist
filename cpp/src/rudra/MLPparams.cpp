@@ -10,7 +10,7 @@
 #include <cstring>
 
 namespace rudra {
-const std::string MLPparams::paramList[] = { "trainData", "trainLabels",
+  const std::string MLPparams::paramList[] = { "modelName", "trainData", "trainLabels",
 		"testData", "testLabels", "layerCfgFile", "testInterval", "meanFile", "chkptInterval", "numTrainSamples", "numTestSamples", "numInputDim",
                 "numClasses", "numEpochs", "batchSize", "learningSchedule", "gamma", "beta", "lrFile", "epochs" };
 
@@ -82,7 +82,7 @@ void MLPparams::setMLPdefaults() {
 	MLPparams::MLPCfg["numClasses"]		= "10";
 	MLPparams::MLPCfg["numEpochs"]		= "100";
 	MLPparams::MLPCfg["batchSize"] 		= "100";
-
+	MLPparams::MLPCfg["modelName"] 		= "";
 
 	MLPparams::MLPCfg["learningSchedule"] = "constant";
 	MLPparams::MLPCfg["gamma"]			= "1";
