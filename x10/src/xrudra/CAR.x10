@@ -103,8 +103,9 @@ public class CAR(CRAB:boolean, confName:String, noTest:Boolean,
             val done = new AtomicBoolean(false);
             Learner.initNativeLearnerStatics(confName, jobDir, meanFile, seed, mom,lrmult, 
                                              adarho, adaepsilon, ln);
+            logger.info(()=>"CAR: Initialized native learner statics.");
             val nl = Learner.makeNativeLearner(weightsFile, solverType);
-            
+            logger.info(()=>"CAR: Made nl, native learner.");
             val networkSize = nl.getNetworkSize();
             val size = networkSize+1;
             val numEpochs = nl.getNumEpochs() as UInt;
@@ -113,9 +114,10 @@ public class CAR(CRAB:boolean, confName:String, noTest:Boolean,
             // rounded up to nearest unit, so more MB may be generated than needed.
             val mbPerEpoch = ((nl.getNumTrainingSamples() + mbSize - 1) / mbSize) as UInt; 
             val maxMB = (numEpochs * mbPerEpoch) as UInt;
-            val nLearner= Learner.makeNativeLearner(weightsFile, solverType);
+            //            val nLearner= Learner.makeNativeLearner(weightsFile, solverType);
             val learner=new Learner(confName, mbPerEpoch, spread, profiling, 
-                                         nLearner, team, new Logger(ll), lt, solverType);
+                                         nl, team, new Logger(ll), lt, solverType);
+            logger.info(()=>"CAR: Made learner, native learner.");
             val nlReconciler= Learner.makeNativeLearner(weightsFile, solverType);
             val state = new State(nlReconciler, logger);
             val counts = new Counts();

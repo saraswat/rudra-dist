@@ -347,9 +347,9 @@ public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
 
         // echo command line parameters
         bootLogger.emit("Running with code |" + CodeId.commitHash+ "|");
-        bootLogger.emit("rudra" + (perf?" -perf" :"")+ " -f " + confName 
-                        + "\n\t -j " + jobDir + " -restart " + weightsFile  
-                        + " -meanFile " + meanFile
+        bootLogger.emit("rudra" + (perf?" -perf" :"")+ " -f |" + confName  + "|"
+                        + "\n\t -j " + jobDir + " -restart |" + weightsFile  + "|"
+                        + " -meanFile |" + meanFile + "|"
                         + "\n\t -s |" + solverType + "| -seed " + seed 
                         + " -mom " + mom + " -mult " + lrmult
 
