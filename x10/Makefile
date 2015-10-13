@@ -21,10 +21,14 @@ ifeq ($(arch),ppc64)
     # POWER7 (inc. p775)
 	CXX = xlC_r
     BLASLIB ?= ESSL
-    X10CXX := $(X10CXX_BIN) -x10rt pami
+    X10RTIMPL ?= pami
 else
-    X10CXX := $(X10CXX_BIN) -x10rt mpi
     X10CXX_PREARGS += -cxx-prearg -std=c++0x
+    X10RTIMPL ?= mpi
+endif
+
+ifdef X10RTIMPL # sockets, mpi, pami, etc.
+  X10FLAG += -x10rt ${X10RTIMPL}
 endif
 
 # enable CPU profiling with google-perftools
