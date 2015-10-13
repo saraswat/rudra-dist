@@ -15,7 +15,7 @@ ifeq ($(arch),unknown)
     arch=$(shell uname -m)
 endif
 
-X10CXX_PREARGS += -VERBOSE_CHECKS
+X10FLAG = -O -g -NO_CHECKS -VERBOSE_CHECKS -report postcompile=1
 
 ifeq ($(arch),ppc64)
     # POWER7 (inc. p775)
@@ -47,7 +47,7 @@ X10CXX_POSTARGS += -cxx-postarg -L/usr/lib/python2.7/config-x86_64-linux-gnu -cx
 
 all: rudra
 rudra: src/xrudra/Rudra.x10 src/xrudra/Learner.x10 src/xrudra/Tester.x10 src/xrudra/ImmedLearner.x10 src/xrudra/ImmedReconciler.x10 src/xrudra/ApplyLearner.x10 src/xrudra/ApplyReconciler.x10 src/xrudra/HardSync.x10 src/xrudra/AtLeastRAllReducer.x10 src/xrudra/NativeLearner.cpp src/xrudra/NativeLearner.x10  src/xrudra/NativeLearner.h src/xrudra/util/*SwapBuffer.x10 src/xrudra/util/Timer.x10 src/xrudra/util/Logger.x10 
-	$(X10CXX) -O -g -NO_CHECKS -sourcepath src -report postcompile=1 $(X10CXX_PREARGS) $(X10CXX_POSTARGS) -d ./tmp -o ./rudra src/xrudra/Rudra.x10
+	x10c++ $(X10FLAG) -sourcepath src $(X10CXX_PREARGS) $(X10CXX_POSTARGS) -d ./tmp -o ./rudra src/xrudra/Rudra.x10
 
 clean:
 	$(RM) rudra
