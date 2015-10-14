@@ -71,11 +71,13 @@ class Model(object):
 
     @staticmethod
     def updbuf(buf, val, p, acc=False):
-        l = val.size
+        l = T.prod(val.shape)
         if acc:
-            buf[p:p+l] += val.reshape(val.size)
+            #buf[p:p+l] += val.reshape(val.size)
+            buf[p:p+l] += val.flatten()
         else:
-            buf[p:p+l] = val.reshape(val.size)
+            #buf[p:p+l] = val.reshape(val.size)
+            buf[p:p+l] = val.flatten()
         return p+l
 
     def get_grads(self, buf):
@@ -102,7 +104,7 @@ class Model(object):
         s = 0
         for p in self.params:
             l = p.get_value(borrow=True).size
-            p.set_value(b[s:s+l])
+            p.set_value(self.b[s:s+l])
             s += l
 
     # This doesn't have adagrad yet, it's just to make sure the rest works.
@@ -111,7 +113,7 @@ class Model(object):
         for p in self.params:
             pv = p.get_value(borrow=True)
             l = pv.size
-            p.set_value(pv + b[s:s+l])
+            p.set_value(pv + self.b[s:s+l])
             s += l
 
 
