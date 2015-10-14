@@ -1,5 +1,6 @@
 import numpy
 
+import time
 import theano
 import theano.tensor as T
 
@@ -16,15 +17,15 @@ class Model(object):
         # fixed arch below.
         print("In init.")
         print(str(self))
+
+        #import pdb; pdb.set_trace()
         self.W1 = theano.shared(value=numpy.asarray(
                 numpy.random.uniform(
                     low=-numpy.sqrt(6. / (n_in + n_hidden)),
                     high=numpy.sqrt(6. / (n_in + n_hidden)),
-                    size=(n_in, n_hidden)
-                    ),
-                dtype='float32'
-                ),
-                           name='W1', borrow=True)
+                    size=(n_in, n_hidden)),
+                dtype='float32'),
+                name='W1', borrow=True)
 
         self.b1 = theano.shared(value=numpy.zeros((n_hidden,), dtype='float32'),
                                 name='b1', borrow=True)
@@ -44,26 +45,26 @@ class Model(object):
         y = T.fmatrix('y')
 
         # Drop the last dim (which should be 1)
-        y_r = y.dimshuffle(0)
+        #y_r = y.dimshuffle(0)
 
-        hidden = T.tanh(T.dot(x, W1) + b1)
-        p_y_given_x = T.nnet.softmax(T.dot(hidden, W2) + b2)
+        hidden = T.tanh(T.dot(x, self.W1) + self.b1)
+        p_y_given_x = T.nnet.softmax(T.dot(hidden, self.W2) + self.b2)
         pred = T.argmax(p_y_given_x, axis=1)
-        nll = -T.mean(T.log(p_y_given_x)[T.arange(y.shape[0]), y_r])
+        nll = -T.mean(T.log(p_y_given_x)[T.arange(y.shape[0]), T.arange(y.shape[0])])
 
-        L2_sqr = (W1 ** 2).sum() + (W2 ** 2).sum()
+        L2_sqr = (self.W1 ** 2).sum() + (self.W2 ** 2).sum()
 
         cost = nll + L2_sqr * as_f32(0.0001)
 
-        gparams = [T.grad(cost, param) for param in params]
+        gparams = [T.grad(cost, param) for param in self.params]
 
-        updates = [(grad, grad - lr * gparam)
+        updates = [(grad, grad - self.lr * gparam)
                    for grad, gparam in zip(self.grads, gparams)]
 
         # This does not update values, only accumulate gradients
-        train = theano.function([x, y], cost, updates=updates)
+        self.train = theano.function([x, y], cost, updates=updates)
 
-        test = theano.function([x, y], cost)
+        self.test = theano.function([x, y], cost)
 
     def size(self):
         return self.W1.size + self.W2.size + self.b1.size + self.b2.size
@@ -77,26 +78,26 @@ class Model(object):
             buf[p:p+l] = val.reshape(val.size)
         return p+l
 
-    def getgrads(self, buf):
+    def get_grads(self, buf):
         p = 0
         for g in self.grads:
             p = self.updbuf(buf, g.get_value(borrow=True), p)
 
-    def accgrads(self, buf):
+    def acc_grads(self, buf):
         p = 0
         for g in self.grads:
             p = self.updbuf(buf, g.get_value(borrow=True), p, acc=True)
 
-    def updatelr(self, newLR):
+    def upd_lr(self, newLR):
         self.lr.set_value(newLR)
 
-    def getweights(self, buf):
+    def get_params(self, buf):
         print(self)
         s = 0
         for p in self.params:
             s = self.updbuf(buf, p.get_value(borrow=True), s)
 
-    def setweights(self, buf):
+    def set_params(self, buf):
         print(self)
         s = 0
         for p in self.params:
@@ -105,7 +106,7 @@ class Model(object):
             s += l
 
     # This doesn't have adagrad yet, it's just to make sure the rest works.
-    def updweights(self, buf, numMB):
+    def upd_params(self, buf, numMB):
         s = 0
         for p in self.params:
             pv = p.get_value(borrow=True)

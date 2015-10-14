@@ -79,6 +79,7 @@ int learner_init(void **_net, struct param params[],
   /* This will load the module, but return an error if something else
      is using the import mechanism right now rather than wait
      indefinitely */
+  PyErr_Clear(); // Clear error state before returning to Python
   mod = PyImport_ImportModuleNoBlock(name);
   /* A NULL return indicates an error */
   if (mod == NULL) {
@@ -103,6 +104,7 @@ int learner_init(void **_net, struct param params[],
     fprintf(stderr, "Could not create net!\n");
     PyErr_Print();
     goto error;
+    exit(1);
   }
   Py_DECREF(init); init = NULL;
   Py_DECREF(pdict); pdict = NULL;
@@ -212,6 +214,7 @@ static float _learner_call2(PyObject *net, const char *meth, size_t batchSize,
   }
 
   /* Call the train function with the two array objects. */
+  PyErr_Clear(); // Clear error state before returning to Python
   res = PyObject_CallMethod((PyObject *)net, (char *)meth, "OO", fdata, tdata);
   if (res == NULL || PyErr_Occurred()) {
     /* We need to care about the return value since python functions
@@ -277,6 +280,7 @@ static void _learner_call1(void *net, const char *meth, float *data) {
     return;
   }
 
+  PyErr_Clear(); // Clear error state before returning to Python
   res = PyObject_CallMethod((PyObject *)net, (char *)meth, "O", udata);
   /* Make sure the python function did not keep references */
   assert(udata->ob_refcnt == 1);
@@ -294,16 +298,16 @@ static void _learner_call1(void *net, const char *meth, float *data) {
 }
 
 void learner_getgrads(void *net, float *updates) {
-  _learner_call1(net, "getgrads", updates);
+  _learner_call1(net, "get_grads", updates);
 }
 
 void learner_accgrads(void *net, float *updates) {
-  _learner_call1(net, "accgrads", updates);
+  _learner_call1(net, "acc_grads", updates);
 }
 
 void learner_updatelr(void *net, float newLR) {
   PyObject *res;
-  res = PyObject_CallMethod((PyObject *)net, "updatelr", "f", newLR);
+  res = PyObject_CallMethod((PyObject *)net, "upd_lr", "f", newLR);
   if (res == NULL) {
     PyErr_PrintEx(1);
     // TODO: indicate error
@@ -313,11 +317,11 @@ void learner_updatelr(void *net, float newLR) {
 }
 
 void learner_getweights(void *net, float *weights) {
-  _learner_call1(net, "getweights", weights);
+  _learner_call1(net, "get_params", weights);
 }
 
 void learner_setweights(void *net, float *weights) {
-  _learner_call1(net, "setweights", weights);
+  _learner_call1(net, "set_params", weights);
 }
 
 void learner_updweights(void *net, float *grads, size_t numMB) {
@@ -333,7 +337,7 @@ void learner_updweights(void *net, float *grads, size_t numMB) {
     return;
   }
 
-  res = PyObject_CallMethod((PyObject *)net, "updweights", "On", gdata,
+  res = PyObject_CallMethod((PyObject *)net, "upd_params", "On", gdata,
                             (Py_ssize_t)numMB);
   /* Make sure the python function did not keep references */
   assert(gdata->ob_refcnt == 1);
