@@ -14,6 +14,8 @@ class Model(object):
     def __init__(self, params):
         # This should respect the spec in params rather than use the
         # fixed arch below.
+        print("In init.")
+        print(str(self))
         self.W1 = theano.shared(value=numpy.asarray(
                 numpy.random.uniform(
                     low=-numpy.sqrt(6. / (n_in + n_hidden)),
@@ -34,9 +36,9 @@ class Model(object):
         self.lr = theano.shared(value=numpy.asarray(0.1, dtype='float32'),
                                 name='lr', borrow=True)
 
-        self.params = (W1, b1, W2, b2)
+        self.params = (self.W1, self.b1, self.W2, self.b2)
         self.grads = [theano.shared(numpy.zeros_like(param.get_value(borrow=True)))
-                      for param in params]
+                      for param in self.params]
 
         x = T.fmatrix('x')
         y = T.fmatrix('y')
@@ -56,7 +58,7 @@ class Model(object):
         gparams = [T.grad(cost, param) for param in params]
 
         updates = [(grad, grad - lr * gparam)
-                   for grad, gparam in zip(grads, gparams)]
+                   for grad, gparam in zip(self.grads, gparams)]
 
         # This does not update values, only accumulate gradients
         train = theano.function([x, y], cost, updates=updates)
@@ -89,11 +91,13 @@ class Model(object):
         self.lr.set_value(newLR)
 
     def getweights(self, buf):
+        print(self)
         s = 0
         for p in self.params:
             s = self.updbuf(buf, p.get_value(borrow=True), s)
 
     def setweights(self, buf):
+        print(self)
         s = 0
         for p in self.params:
             l = p.get_value(borrow=True).size
@@ -110,5 +114,7 @@ class Model(object):
             s += l
 
 
-def init(params):
+def myinit(params):
+    print("Golden: In init with params ")
+    print(str(params))
     return Model(params)
