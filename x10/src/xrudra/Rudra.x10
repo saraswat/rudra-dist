@@ -346,6 +346,7 @@ public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
         }
 
         // echo command line parameters
+        bootLogger.emit("Running on " + Place.numPlaces() + " places.");
         bootLogger.emit("Running with code |" + CodeId.commitHash+ "|");
         bootLogger.emit("rudra" + (perf?" -perf" :"")+ " -f |" + confName  + "|"
                         + "\n\t -j " + jobDir + " -restart |" + weightsFile  + "|"
