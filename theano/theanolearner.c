@@ -99,6 +99,7 @@ int learner_init(void **_net, struct param params[],
   fprintf(stdout, "Method 'myinit' is  %p  \n", init);
     Py_DECREF(mod); mod = NULL;
 
+  PyErr_Clear(); // Clear error state before returning to Python
   *net = PyObject_CallFunctionObjArgs(init, pdict, NULL);
   if (*net == NULL) {
     fprintf(stderr, "Could not create net!\n");
@@ -337,6 +338,7 @@ void learner_updweights(void *net, float *grads, size_t numMB) {
     return;
   }
 
+  PyErr_Clear(); // Clear error state before returning to Python
   res = PyObject_CallMethod((PyObject *)net, "upd_params", "On", gdata,
                             (Py_ssize_t)numMB);
   /* Make sure the python function did not keep references */
