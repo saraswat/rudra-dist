@@ -20,7 +20,7 @@ To build Theano learner:
 
 To build rudra-dist:
 
-    $ cd x10 && make
+    $ cd x10 && make X10RTIMPL=sockets
 
 Note:
 1. `rudra.profile` sets the necessary environment variables needed for building and running Rudra. Amongst other things, it sets the `$RUDRA_HOME` environment variable. In some cases, you may need to modify `rudra.profile` to correctly point to your local Python installation. 
