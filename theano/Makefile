@@ -1,11 +1,11 @@
-theano: theano.c
-	echo "Building theano.o"
-	gcc -fPIC -c $$(python-config --cflags) -I$$(python -c 'import numpy; print(numpy.get_include())') -I../cpp/include theano.c -o theano.o
-	gcc -shared $$(python-config --ldflags) -o theano.so theano.o
+theanolearner: theanolearner.c
+	echo "Building theanolearner.o"
+	gcc -fPIC -c $$(python-config --cflags) -I$$(python -c 'import numpy; print(numpy.get_include())') -I../cpp/include theanolearner.c -o theanolearner.o
+	gcc -shared $$(python-config --ldflags) -o theanolearner.so theanolearner.o
 
-all: theano 
+all: theanolearner
 
 clean:
-	$(RM) theano.o
-	$(RM) theano.so
+	$(RM) theanolearner.o
+	$(RM) theanolearner.so
 

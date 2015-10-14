@@ -137,7 +137,7 @@ void NativeLearner::initAsTester(long placeID, std::string solverType) {
  */
   int NativeLearner::initNetwork(std::string weightsFile){
     // For now use a constant, make this configurable later on.
-    learner_handle = dlopen("theano", RTLD_LAZY|RTLD_LOCAL);
+    learner_handle = dlopen("theanolearner", RTLD_LAZY|RTLD_LOCAL);
 
     if (learner_handle == NULL) {
       std::cerr << "Error loading learner: " << dlerror() << std::endl;
@@ -183,6 +183,7 @@ void NativeLearner::initAsTester(long placeID, std::string solverType) {
       it != rudra::MLPparams::MLPCfg.end(); ++it, ++i){
     params[i].key = it->first.c_str();
     params[i].val = it->second.c_str();
+    std::cout<<"Param: "<<i <<" " <<params[i].key<<" " <<params[i].val<<std::endl;
   }
 
   res = learner_init(&learner_data, params, rudra::MLPparams::MLPCfg.size());
