@@ -23,10 +23,11 @@ public class TimedWeight(size:Long) implements TimedWeightI { // mutated in plac
         timeStamp = t;
 
 }
-    def calcHash():Float{
+    def calcHash():Float = calcHash(weight);
+    public static def calcHash(f:Rail[Float]):Float {
         var result:Float=0.0f;
-        for (x in weight) result+=x;
-        return result/weight.size;
+        for (x in f) result+=x;
+        return result/f.size;
     }
     public def toString():String = "<TW #" + hashCode() + " load="+ calcHash()
                           +",size="+ loadSize + ",time="+timeStamp+">";

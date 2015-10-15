@@ -224,8 +224,9 @@ import x10.compiler.Pinned;
         val initW:Rail[Float] = new Rail[Float](ns);
         if (here.id == 0)serializeWeights(initW); // place zero serialize weights
         try {
-            logger.info(()=>"Learner:entering initWeight bcast.");
+            logger.info(()=>"Learner:entering initWeight bcast:" + TimedWeight.calcHash(initW));
             team.bcast(Place(0), initW, 0l, initW, 0l, ns);
+            logger.info(()=>"Learner:exitinginitWeight bcast:" + TimedWeight.calcHash(initW));
         }catch (z: Error) {
             logger.error(()=>"Learner.initWeights: error in bcast! " + z);
             z.printStackTrace();

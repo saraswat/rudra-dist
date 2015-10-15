@@ -137,7 +137,7 @@ void NativeLearner::initAsTester(long placeID, std::string solverType) {
  */
   int NativeLearner::initNetwork(std::string weightsFile){
     // For now use a constant, make this configurable later on.
-    learner_handle = dlopen("theanolearner", RTLD_LAZY|RTLD_LOCAL);
+    learner_handle = dlopen("./theanolearner", RTLD_LAZY|RTLD_LOCAL);
 
     if (learner_handle == NULL) {
       std::cerr << "Error loading learner: " << dlerror() << std::endl;
