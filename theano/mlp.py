@@ -18,7 +18,6 @@ class Model(object):
         print("In init.")
         print(str(self))
 
-        #import pdb; pdb.set_trace()
         self.W1 = theano.shared(value=numpy.asarray(
                 numpy.random.uniform(
                     low=-numpy.sqrt(6. / (n_in + n_hidden)),
@@ -71,24 +70,23 @@ class Model(object):
 
     @staticmethod
     def updbuf(buf, val, p, acc=False):
-        l = T.prod(val.shape)
+        l = val.size
+        #import pdb; pdb.set_trace()
         if acc:
-            #buf[p:p+l] += val.reshape(val.size)
             buf[p:p+l] += val.flatten()
         else:
-            #buf[p:p+l] = val.reshape(val.size)
             buf[p:p+l] = val.flatten()
         return p+l
 
     def get_grads(self, buf):
-        p = 0
+        s = 0
         for g in self.grads:
-            p = self.updbuf(buf, g.get_value(borrow=True), p)
+            s = self.updbuf(buf, g.get_value(borrow=True), s)
 
     def acc_grads(self, buf):
-        p = 0
+        s = 0
         for g in self.grads:
-            p = self.updbuf(buf, g.get_value(borrow=True), p, acc=True)
+            s = self.updbuf(buf, g.get_value(borrow=True), s, acc=True)
 
     def upd_lr(self, newLR):
         self.lr.set_value(newLR)
@@ -96,15 +94,24 @@ class Model(object):
     def get_params(self, buf):
         print(self)
         s = 0
+        tot_size = 0
         for p in self.params:
-            s = self.updbuf(buf, p.get_value(borrow=True), s)
+            val = p.get_value(borrow=True)
+            tot_size += val.size
+            if buf.size == 0:
+                buf = numpy.zeros(tot_size, dtype=numpy.float32)
+            elif buf.size < tot_size:
+                buf.resize(tot_size)
+
+            s = self.updbuf(buf, val, s)
 
     def set_params(self, buf):
         print(self)
         s = 0
         for p in self.params:
             l = p.get_value(borrow=True).size
-            p.set_value(self.b[s:s+l])
+            #import pdb; pdb.set_trace()
+            p.set_value(T.reshape(buf[s:s+l], p.shape))
             s += l
 
     # This doesn't have adagrad yet, it's just to make sure the rest works.
@@ -113,7 +120,7 @@ class Model(object):
         for p in self.params:
             pv = p.get_value(borrow=True)
             l = pv.size
-            p.set_value(pv + self.b[s:s+l])
+            p.set_value(pv + T.reshape(buf[s:s+l], pv.shape))
             s += l
 
 
