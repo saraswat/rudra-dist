@@ -66,7 +66,8 @@ class Model(object):
         self.test = theano.function([x, y], cost)
 
     def size(self):
-        return self.W1.size + self.W2.size + self.b1.size + self.b2.size
+        #return self.W1.size + self.W2.size + self.b1.size + self.b2.size
+        return self.W1.get_value().size + self.W2.get_value().size + self.b1.get_value().size + self.b2.get_value().size
 
     @staticmethod
     def updbuf(buf, val, p, acc=False):
@@ -108,11 +109,25 @@ class Model(object):
     def set_params(self, buf):
         print(self)
         s = 0
+        new_params = []
         for p in self.params:
             l = p.get_value(borrow=True).size
-            #import pdb; pdb.set_trace()
-            p.set_value(T.reshape(buf[s:s+l], p.shape))
+            new_p = numpy.reshape(buf[s:s+l], p.get_value().shape)
+            new_params.append(new_p)
             s += l
+
+        up = [(o_p, n_p) for o_p, n_p in zip(self.params, new_params)]
+        f_update = theano.function([], [], updates=up)
+        f_update()
+        """
+        s = 0
+        for p in self.params:
+            l = p.get_value(borrow=True).size
+            import pdb; pdb.set_trace()
+            #p.set_value(T.reshape(buf[s:s+l], p.get_value().shape), borrow=False)
+            p = numpy.reshape(buf[s:s+l], p.get_value().shape)
+            s += l
+        """
 
     # This doesn't have adagrad yet, it's just to make sure the rest works.
     def upd_params(self, buf, numMB):
