@@ -123,7 +123,7 @@ int learner_init(void **_net, struct param params[],
   CHECK_METHOD("upd_lr");
   CHECK_METHOD("set_params");
   CHECK_METHOD("get_params");
-  CHECK_METHOD("upd_params");
+  CHECK_METHOD("upd_grads");
 
   return 0;
 error:
@@ -300,6 +300,12 @@ static void _learner_call1(void *net, const char *meth, float *data) {
 
 void learner_getgrads(void *net, float *updates) {
   _learner_call1(net, "get_grads", updates);
+  int i;
+  float sum = 0;
+  for (i = 0; i < 397510; i++) {
+    sum += updates[i];
+  }
+  printf("Sum: %f  ** Avg: %f\n", sum, sum/ 397510.0);
 }
 
 void learner_accgrads(void *net, float *updates) {
@@ -339,7 +345,7 @@ void learner_updweights(void *net, float *grads, size_t numMB) {
   }
 
   PyErr_Clear(); // Clear error state before returning to Python
-  res = PyObject_CallMethod((PyObject *)net, "upd_params", "On", gdata,
+  res = PyObject_CallMethod((PyObject *)net, "upd_grads", "On", gdata,
                             (Py_ssize_t)numMB);
   /* Make sure the python function did not keep references */
   assert(gdata->ob_refcnt == 1);

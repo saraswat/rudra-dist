@@ -40,16 +40,16 @@ class Model(object):
         self.grads = [theano.shared(numpy.zeros_like(param.get_value(borrow=True)))
                       for param in self.params]
 
-        x = T.fmatrix('x')
-        y = T.fmatrix('y')
+        self.x = T.fmatrix('x')
+        self.y = T.fmatrix('y')
 
         # Drop the last dim (which should be 1)
         #y_r = y.dimshuffle(0)
 
-        hidden = T.tanh(T.dot(x, self.W1) + self.b1)
+        hidden = T.tanh(T.dot(self.x, self.W1) + self.b1)
         p_y_given_x = T.nnet.softmax(T.dot(hidden, self.W2) + self.b2)
         pred = T.argmax(p_y_given_x, axis=1)
-        nll = -T.mean(T.log(p_y_given_x)[T.arange(y.shape[0]), T.arange(y.shape[0])])
+        nll = -T.mean(T.log(p_y_given_x)[T.arange(self.y.shape[0]), T.arange(self.y.shape[0])])
 
         L2_sqr = (self.W1 ** 2).sum() + (self.W2 ** 2).sum()
 
@@ -57,13 +57,20 @@ class Model(object):
 
         gparams = [T.grad(cost, param) for param in self.params]
 
-        updates = [(grad, grad - self.lr * gparam)
-                   for grad, gparam in zip(self.grads, gparams)]
+        gs = [(grad, gparam) for grad, gparam in zip(self.grads, gparams)]
+        #f_gshared = theano.function([x, y], [], updates=gs]  # not required if we do update as part of train
 
         # This does not update values, only accumulate gradients
-        self.train = theano.function([x, y], cost, updates=updates)
+        #self.train = theano.function([x, y], cost, updates=updates)
+        self.train = theano.function([self.x, self.y], cost, updates=gs)
 
-        self.test = theano.function([x, y], cost)
+        #updates = [(grad, grad - self.lr * gparam)
+        #           for grad, gparam in zip(self.grads, gparams)]
+        param_updates = [(param, param - self.lr * grad)
+                       for param, grad in zip(self.params, self.grads)]
+        self.pup = theano.function([self.x, self.y], [], updates=param_updates)
+
+        self.test = theano.function([self.x, self.y], cost)
 
     def size(self):
         #return self.W1.size + self.W2.size + self.b1.size + self.b2.size
@@ -72,7 +79,6 @@ class Model(object):
     @staticmethod
     def updbuf(buf, val, p, acc=False):
         l = val.size
-        #import pdb; pdb.set_trace()
         if acc:
             buf[p:p+l] += val.flatten()
         else:
@@ -80,9 +86,14 @@ class Model(object):
         return p+l
 
     def get_grads(self, buf):
+
         s = 0
         for g in self.grads:
             s = self.updbuf(buf, g.get_value(borrow=True), s)
+
+        #import pdb; pdb.set_trace()
+        print '\n', buf.sum(), buf.sum()/ buf.size
+        print buf[0:5], buf.size
 
     def acc_grads(self, buf):
         s = 0
@@ -111,14 +122,15 @@ class Model(object):
         s = 0
         new_params = []
         for p in self.params:
-            l = p.get_value(borrow=True).size
-            new_p = numpy.reshape(buf[s:s+l], p.get_value().shape)
+            p_val = p.get_value(borrow=True)
+            t = s + p_val.size
+            new_p = numpy.reshape(buf[s:t], p_val.shape)
             new_params.append(new_p)
-            s += l
+            s = t
 
-        up = [(o_p, n_p) for o_p, n_p in zip(self.params, new_params)]
-        f_update = theano.function([], [], updates=up)
-        f_update()
+        upp = [(o_p, n_p) for o_p, n_p in zip(self.params, new_params)]
+        f_update_params = theano.function([], [], updates=upp)
+        f_update_params()
         """
         s = 0
         for p in self.params:
@@ -130,14 +142,30 @@ class Model(object):
         """
 
     # This doesn't have adagrad yet, it's just to make sure the rest works.
-    def upd_params(self, buf, numMB):
+    # This should be update gradients NOT update parameters ** upd_grads **
+    def upd_grads(self, buf, numMB):
         s = 0
+        new_grads = []
+        for g in self.grads:
+            g_val = g.get_value(borrow=True)
+            t = s + g_val.size
+            new_g = numpy.reshape(buf[s:t], g_val.shape)
+            new_grads.append(new_g)
+            s = t
+
+        upg = [(o_p, n_p) for o_p, n_p in zip(self.grads, new_grads)]
+        f_update_grads = theano.function([self.x, self.y], [], updates=upg)
+        f_update_grads()
+
+        # Also update the params with these (all-reduced) grads
+        self.pup([self.x, self.y])
+        """
         for p in self.params:
             pv = p.get_value(borrow=True)
             l = pv.size
             p.set_value(pv + T.reshape(buf[s:s+l], pv.shape))
             s += l
-
+        """
 
 def myinit(params):
     print("Golden: In init with params ")
