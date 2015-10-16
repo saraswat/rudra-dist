@@ -7,6 +7,7 @@ Detailed documentation on input formats, invocation, sample datasets and planned
 # Installation
 
 Dependencies:
+
 1. g++ (4.4.7 or higher) / xlC
 2. (optional - for Theano learner) [Theano](http://deeplearning.net/software/theano/)
 
@@ -28,6 +29,7 @@ To build rudra-dist:
     $ cd x10 && make X10RTIMPL=sockets
 
 Note:
+
 1. `rudra.profile` sets the necessary environment variables needed for building and running Rudra. Amongst other things, it sets the `$RUDRA_HOME` environment variable. In some cases, you may need to modify `rudra.profile` to correctly point to your local Python installation. 
 
 # Verifying that the basic Theano program runs
