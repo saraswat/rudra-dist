@@ -6,6 +6,8 @@
 #ifndef RUDRA_SAMPLE_SAMPLECLIENT_H_
 #define RUDRA_SAMPLE_SAMPLECLIENT_H_
 
+#include <cstddef>
+
 #define SC_NULL 0 // not using SampleClient
 #define SC_UNDEFINED 1 // was MPI sample client
 #define GPFS_SC 2
