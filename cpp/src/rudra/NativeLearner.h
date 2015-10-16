@@ -40,6 +40,12 @@ public:
 
 	int getNetworkSize();
 
+    /**
+     * Train the network with a minibatch of samples, storing the gradients
+     * for later use and returning the training error [0.0-1.0]. Does not
+     * actually update the weights; the update will be performed by a later
+     * call to acceptGradients.
+     */
 	float trainMiniBatch();
 
 	/**
@@ -55,14 +61,15 @@ public:
 	 */
 	void accumulateGradients(float *gradients);
 
-	/** Output the parameters now into a file, if instructed by job configuration.
-	 Examines the following parameters in MLPparams: _ckptInterval, _numEpochs,
-	 _jobID. The parameters are printed out if this is the last epoch, or
-	 if this epoch modulo chkptInterval is 0 (if ckptInterval > 0). The name of the
-	 file is jobID.final.h5 or jobId.epoch.<whichEpoch>.h5, and it is placed in
-	 current working dir, which is RUDRA_HOME/LOG/jobID/.
-
-	 whichEpoch -- the current epoch
+	/**
+     * Output the parameters now into a file, if instructed by job configuration.
+	 * Examines the following parameters in MLPparams: _ckptInterval, _numEpochs,
+	 * _jobID. The parameters are printed out if this is the last epoch, or
+	 * if this epoch modulo chkptInterval is 0 (if ckptInterval > 0). The name of the
+	 * file is jobID.final.h5 or jobId.epoch.<whichEpoch>.h5, and it is placed in
+	 * current working dir, which is RUDRA_HOME/LOG/jobID/.
+     *
+	 * @param whichEpoch -- the current epoch
 	 */
 	void checkpointIfNeeded(int whichEpoch);
 
@@ -80,6 +87,12 @@ public:
 
 	void updateLearningRate(long curEpochNum);
 
+    /**
+     * Update the network weights by applying the update rule with
+     * the given set of gradients.
+     * @param grad the gradients
+     * @param numMB the number of minibatches which contributed to gradients
+     */
 	void acceptGradients(float *grad, size_t numMB);
 
 	/**
