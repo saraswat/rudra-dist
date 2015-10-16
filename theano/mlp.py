@@ -91,10 +91,6 @@ class Model(object):
         for g in self.grads:
             s = self.updbuf(buf, g.get_value(borrow=True), s)
 
-        #import pdb; pdb.set_trace()
-        print '\n', buf.sum(), buf.sum()/ buf.size
-        print buf[0:5], buf.size
-
     def acc_grads(self, buf):
         s = 0
         for g in self.grads:

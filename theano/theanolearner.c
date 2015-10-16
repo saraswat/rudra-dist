@@ -300,12 +300,12 @@ static void _learner_call1(void *net, const char *meth, float *data) {
 
 void learner_getgrads(void *net, float *updates) {
   _learner_call1(net, "get_grads", updates);
-  int i;
+  /*int i;
   float sum = 0;
   for (i = 0; i < 397510; i++) {
     sum += updates[i];
   }
-  printf("Sum: %f  ** Avg: %f\n", sum, sum/ 397510.0);
+  printf("Sum: %f  ** Avg: %f\n", sum, sum/ 397510.0);*/
 }
 
 void learner_accgrads(void *net, float *updates) {
