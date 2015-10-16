@@ -43,10 +43,10 @@ endif
 
 # compiler-specific flags
 ifeq ($(CXX),xlC_r)
-    CXXFLAGS += $(OPT) -q64 -qsmp
+    CXXFLAGS += $(OPT) -q64 -qsmp -qpic -qmkshrobj
 else
     # assume g++
-    CXXFLAGS += -std=c++0x $(OPT) -w -Wno-strict-aliasing
+    CXXFLAGS += -std=c++0x $(OPT) -w -Wno-strict-aliasing -fPIC -shared
 
     ifneq (,$(findstring -g,$(OPT)))
          # generate information for printing backtrace
@@ -70,7 +70,7 @@ install: $(LIB) $(RUDRA_LIB)
 	cp $(LIB) $(RUDRA_LIB)
 
 $(LIB):	$(RUDRA_LIB_SRC) copy_headers
-	$(CXX) $(CXXFLAGS) -shared -fPIC -I$(RUDRA_INCLUDE) $(RUDRA_LIB_SRC) -o $(LIB)
+	$(CXX) $(CXXFLAGS) -I$(RUDRA_INCLUDE) $(RUDRA_LIB_SRC) -o $(LIB)
 
 copy_headers:	$(RUDRA_INCLUDE)
 	mkdir -p $(RUDRA_INCLUDE)/rudra $(RUDRA_INCLUDE)/rudra/io $(RUDRA_INCLUDE)/rudra/util

@@ -1,7 +1,8 @@
 #include "rudra/util/RudraRand.h"
 #include <sys/time.h>
 namespace rudra{
-  RudraRand::RudraRand(int rank, int threadid):rank(rank), threadid(threadid), dd{1,2,3}{
+  RudraRand::RudraRand(int rank, int threadid) : rank(rank), threadid(threadid) {
+        dd[0] = 1; dd[1] = 2; dd[2] = 3;
         struct timeval start;
 	gettimeofday(&start, NULL);
 
