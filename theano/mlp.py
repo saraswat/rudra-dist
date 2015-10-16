@@ -68,7 +68,7 @@ class Model(object):
         #           for grad, gparam in zip(self.grads, gparams)]
         param_updates = [(param, param - self.lr * grad)
                        for param, grad in zip(self.params, self.grads)]
-        self.pup = theano.function([self.x, self.y], [], updates=param_updates)
+        self.pup = theano.function([], [], updates=param_updates)
 
         self.test = theano.function([self.x, self.y], cost)
 
@@ -90,6 +90,9 @@ class Model(object):
         s = 0
         for g in self.grads:
             s = self.updbuf(buf, g.get_value(borrow=True), s)
+        #import pdb;pdb.set_trace()
+        print buf[0:5]
+        print buf.sum()
 
     def acc_grads(self, buf):
         s = 0
@@ -154,7 +157,7 @@ class Model(object):
         f_update_grads()
 
         # Also update the params with these (all-reduced) grads
-        self.pup([self.x, self.y])
+        self.pup()
         """
         for p in self.params:
             pv = p.get_value(borrow=True)
