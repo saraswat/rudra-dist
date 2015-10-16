@@ -1,7 +1,10 @@
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 export RUDRA_HOME=$DIR
+export RUDRA_LIB=$RUDRA_HOME/lib
+export RUDRA_INCLUDE=$RUDRA_HOME/include
 
-export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$RUDRA_LIB:$LD_LIBRARY_PATH
+export PYTHONPATH=$PYTHONPATH:$RUDRA_HOME/theano
 
 # Python, numpy and Theano
 export LIBRARY_PATH=$LIBRARY_PATH:/opt/share/Python-2.7.9/lib

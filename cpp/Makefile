@@ -8,18 +8,14 @@
 
 #vj fixed to remove rudra-learner targets and auxiliary definitions
 RUDRA_LIB_SRC := src/rudra/MLPparams.cpp $(wildcard src/rudra/io/*.cpp) $(wildcard src/rudra/util/*.cpp)
-RUDRA_LIB_OBJS =  $(RUDRA_LIB_SRC:%.cpp=%.o)
-#echo "RUDRA_LIB_OBJS is $RUDRA_LIB_OBJS";
-
-HEADERDIR := $(CURDIR)/include
-LIBDIR := lib
-RUDRA_LIB := $(LIBDIR)/librudra.a
 
 RUDRA_HOME ?= $(CURDIR)/..
 
+LIB := librudra.so
+
 # If no optimization parameter set then do optimize
 # as opposed to compile for debugging
-OPT ?= -O3
+OPT ?= -O3 -g
 
 
 # Use the architecture of host machine to determine what compiler to use.
@@ -58,8 +54,7 @@ else
     endif
 endif
 
-
-CXXFLAGS += -DNDEBUG -I$(RUDRA_HOME)/cpp/src
+CXXFLAGS += -DNDEBUG
 
 PROFILE ?=
 ifdef PROFILE
@@ -69,36 +64,30 @@ endif
 
 
 # All Target
-all: rudra_lib
+all: install
 
-rudra_lib: $(RUDRA_LIB)
+install: $(LIB) $(RUDRA_LIB)
+	cp $(LIB) $(RUDRA_LIB)
 
-$(RUDRA_LIB):	$(RUDRA_LIB_OBJS) $(LIBDIR) copy_headers
-	$(AR) rs $@ $(RUDRA_LIB_OBJS)
+$(LIB):	$(RUDRA_LIB_SRC) copy_headers
+	$(CXX) $(CXXFLAGS) -shared -fPIC -I$(RUDRA_INCLUDE) $(RUDRA_LIB_SRC) -o $(LIB)
 
-copy_headers:	$(HEADERDIR)
-	rm -fr $(HEADERDIR)
-	mkdir $(HEADERDIR) $(HEADERDIR)/rudra $(HEADERDIR)/rudra/io $(HEADERDIR)/rudra/util
-	cp src/rudra/*.h $(HEADERDIR)/rudra
-	cp src/rudra/io/*.h $(HEADERDIR)/rudra/io/
-	cp src/rudra/util/*.h $(HEADERDIR)/rudra/util/
-
-$(HEADERDIR):
-	mkdir -p $(HEADERDIR)
-$(LIBDIR):
-	mkdir -p $(LIBDIR)
+copy_headers:	$(RUDRA_INCLUDE)
+	mkdir -p $(RUDRA_INCLUDE)/rudra $(RUDRA_INCLUDE)/rudra/io $(RUDRA_INCLUDE)/rudra/util
+	cp src/rudra/*.h $(RUDRA_INCLUDE)/rudra
+	cp src/rudra/io/*.h $(RUDRA_INCLUDE)/rudra/io/
+	cp src/rudra/util/*.h $(RUDRA_INCLUDE)/rudra/util/
 
 TESTSRC := $(wildcard test/rudra/*/*.cpp)
 TESTS = $(TESTSRC:%.cpp=%)
 
 % :	%.cpp
-	$(CXX) $(CXXFLAGS)
+	
 
-test:	$(RUDRA_LIB) $(TESTS)
+test:	$(LIB) $(TESTS)
 
 clean:
-	-$(RM) -r $(HEADERDIR)/* $(LIBDIR)/*
-	-$(RM) lib/librudra.a $(RUDRA_LIB_OBJS)
+	-$(RM) $(RUDRA_LIB_OBJS)
 	-@echo ' '
 
 .PHONY: all clean copy_headers

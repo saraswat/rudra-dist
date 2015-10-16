@@ -1,9 +1,9 @@
+#include "learner.h"
 #include <Python.h>
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/arrayobject.h>
 
 #include <stdio.h>
-#include <rudra/learner.h>
 
 /* This is required because import_array is a macro that may return */
 static

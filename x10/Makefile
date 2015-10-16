@@ -36,8 +36,10 @@ ifdef PROFILE
   X10CXX_PREARGS += -gpt
 endif
 
-X10CXX_PREARGS += -cxx-prearg -I${RUDRA_HOME}/cpp/include
-X10CXX_POSTARGS += -cxx-postarg -L${RUDRA_HOME}/cpp/lib -cxx-postarg -lrudra
+RUDRA_LEARNER ?= rudralearner-theano
+
+X10CXX_PREARGS += -cxx-prearg -I$(RUDRA_INCLUDE)
+X10CXX_POSTARGS += -cxx-postarg -L$(RUDRA_LIB) -cxx-postarg -lrudra -cxx-postarg -l$(RUDRA_LEARNER)
 
 # vj need to add these for theano linkage.
 # TODO: Do this in a system generic way, this is obtained by
@@ -46,9 +48,8 @@ X10CXX_POSTARGS += -cxx-postarg -L${RUDRA_HOME}/cpp/lib -cxx-postarg -lrudra
 X10CXX_POSTARGS += -cxx-postarg -L/usr/lib/python2.7/config-x86_64-linux-gnu -cxx-postarg -L/usr/lib -cxx-postarg -lpthread -cxx-postarg -ldl  -cxx-postarg -lutil -cxx-postarg -lm  -cxx-postarg -lpython2.7 -cxx-postarg -Xlinker -cxx-postarg -export-dynamic -cxx-postarg "-Wl,-O1" -cxx-postarg "-Wl,-Bsymbolic-functions"
 
 all: rudra
-rudra: src/xrudra/Rudra.x10 src/xrudra/Learner.x10 src/xrudra/Tester.x10 src/xrudra/ImmedLearner.x10 src/xrudra/ImmedReconciler.x10 src/xrudra/ApplyLearner.x10 src/xrudra/ApplyReconciler.x10 src/xrudra/HardSync.x10 src/xrudra/AtLeastRAllReducer.x10 src/xrudra/NativeLearner.cpp src/xrudra/NativeLearner.x10  src/xrudra/NativeLearner.h src/xrudra/util/*SwapBuffer.x10 src/xrudra/util/Timer.x10 src/xrudra/util/Logger.x10 
-	x10c++ $(X10FLAG) -sourcepath src $(X10CXX_PREARGS) $(X10CXX_POSTARGS) -d ./tmp -o ./rudra src/xrudra/Rudra.x10
+rudra: src/rudra/Rudra.x10 src/rudra/Learner.x10 src/rudra/Tester.x10 src/rudra/ImmedLearner.x10 src/rudra/ImmedReconciler.x10 src/rudra/ApplyLearner.x10 src/rudra/ApplyReconciler.x10 src/rudra/HardSync.x10 src/rudra/AtLeastRAllReducer.x10 src/rudra/NativeLearner.x10 src/rudra/util/*SwapBuffer.x10 src/rudra/util/Timer.x10 src/rudra/util/Logger.x10 
+	x10c++ $(X10FLAG) -sourcepath src $(X10CXX_PREARGS) $(X10CXX_POSTARGS) -d ./tmp src/rudra/Rudra.x10 -o $(RUDRA_HOME)/rudra
 
 clean:
-	$(RM) rudra
 	$(RM) -fr ./tmp
