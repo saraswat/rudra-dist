@@ -1,35 +1,27 @@
-if [ "$#" -ne 4 ]
+if [ "$#" -ne 3 ]
 then
-    echo "Wrong arguments. [Usage]: rudra_dcc.sh config_file node_num job_id sync_level"
+    echo "Wrong arguments. [Usage]: rudra_dcc_x10.sh config_file node_num job_id"
     exit -1
 fi
 : ${RUDRA_HOME:?"Need to set RUDRA_HOME"}
 
-if [ ! -x $RUDRA_HOME/cpp/rudra ]
+if [ ! -x $RUDRA_HOME/x10/rudra ]
 then
-    echo "executable $RUDRA_HOME/cpp/rudra doesn't exist or it is not executable"
+    echo "executable $RUDRA_HOME/x10/rudra doesn't exist or it is not executable"
 fi
 conf_file=$1
 node_num=$2
 job_id=$3
-sync_level=$4
-sl=4 # by default smart
-if [ $node_num -gt 32 ] || [ $node_num -lt 4 ]
+if [ $node_num -gt 32 ] || [ $node_num -lt 2 ]
 then 
-    echo "User requested $node_num nodes: Rudra only supports 4-32 nodes."
+    echo "User requested $node_num nodes: Rudra only supports 2-32 nodes."
     exit -1
 fi
-if [ "$sync_level" == "hard" ] 
-then
-sl=0
-elif [ "$sync_level" == "smart" ]
-then 
-sl=4
-else
-echo "$sync_level is not a legit sync level, legit sync level: hard|smart"
-fi
+
 source $RUDRA_HOME/rudra.profile
 export OMP_NUM_THREADS=4
-#jbsub  -c ${node_num}xA /opt/share/openmpi-1.8.4/bin/mpirun -n $node_num $RUDRA_HOME/cpp/rudra -f ${conf_file} -sl $sl -sc 3 -ll 1 -j $job_id
+export X10_NTHREADS=2
+export X10_NUM_IMMEDIATE_THREADS=1
+rm -rf $RUDRA_HOME/LOG/$job_id # Rudra won't run if previous logs are in the way
 
-jbsub  -c ${node_num}x4 mpiwrap.sh $RUDRA_HOME/cpp/rudra -f ${conf_file} -sl $sl -sc 3 -ll 1 -j $job_id
+jbsub  -c ${node_num}x16.2 -out $job_id.out -err $job_id.err mpiwrap.sh $RUDRA_HOME/x10/rudra -f ${conf_file} -j $job_id -ln 3 -ll 2 -lr 2
