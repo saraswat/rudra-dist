@@ -24,9 +24,13 @@ To build Theano learner:
 
     $ cd theano && make
 
-To build rudra-dist:
+To build rudra-dist with the Theano learner:
 
-    $ cd x10 && make X10RTIMPL=sockets
+    $ cd x10 && make X10RTIMPL=mpi RUDRA_LEARNER=rudralearner-theano
+
+To build rudra-dist with a mock learner (for testing purposes):
+
+    $ cd x10 && make X10RTIMPL=mpi RUDRA_LEARNER=rudralearner-mock
 
 Note:
 

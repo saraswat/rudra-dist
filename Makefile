@@ -3,7 +3,14 @@ rudra-theano:
 	mkdir -p lib
 	cd cpp && make
 	cd theano && make
-	cd x10 && make X10RTIMPL=sockets # use sockets until we sort out X10/MPI on DCC
+	cd x10 && make X10RTIMPL=mpi RUDRA_LEARNER=rudralearner-theano
+
+rudra-mock:
+	mkdir -p include
+	mkdir -p lib
+	cd cpp && make
+	cd mock && make
+	cd x10 && make X10RTIMPL=mpi RUDRA_LEARNER=rudralearner-mock
 
 clean:
 	rm -rf ./lib ./include ./rudra

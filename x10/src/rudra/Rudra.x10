@@ -96,6 +96,9 @@ public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
 
     public def run():void {
         if (nwMode == NW_SEND_BROADCAST) {
+            if (Place.numPlaces() < 2) {
+                throw new Exception("send_broadcast mode requires at least two places!");
+            } 
             logger.info(()=>"SB: Starting.");
             new SendBroadcast(hardSync, confName, noTest, jobDir, weightsFile, meanFile, 
                               profiling, 
