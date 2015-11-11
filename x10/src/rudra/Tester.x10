@@ -2,12 +2,11 @@ package rudra;
 
 import x10.util.Team;
 import x10.util.Date;
-import x10.util.concurrent.AtomicBoolean;
 import rudra.util.SwapBuffer;
 import rudra.util.Logger;
 import rudra.util.Timer;
 
-public class Tester(confName:String, logger:Logger, noTest:Boolean, solverType:String) {
+public class Tester(confName:String, logger:Logger, solverType:String) {
     static val P = Place.numPlaces();
     val testerTeam = new Team(PlaceGroup.make(P));
     var weightsPLH:PlaceLocalHandle[Rail[Float]];
@@ -34,23 +33,13 @@ public class Tester(confName:String, logger:Logger, noTest:Boolean, solverType:S
                 tsWeight = tmp;
                 if (tsWeight.size == 0 ) break L;
                 val epoch = tsWeight.timeStamp, tsw = tsWeight;
-                if (noTest) {
-                    val nn = new NativeLearner(here.id);
-                    nn.initAsTester(here.id, solverType);
-                    nn.deserializeWeights(tsWeight.weight);
-                    logger.info(()=>"Tester:Starting checkpoint if needed.");
-                    nn.checkpointIfNeeded(epoch as Int);
-                    logger.info(()=>"Tester:Checkpoint finished.");
-                    nn.cleanup();
-                } else {
-                    logger.info(()=>"Tester: testing " + tsw); 
-                    val startTime = System.currentTimeMillis();
-                    val epochTime = tsWeight.runtime;
-                    val score = test(epoch as Int, tsWeight.weight); // can take a long time
-                    logger.notify(()=>new Date() + " Tester:Epoch " + epoch + " took " + Timer.time(epochTime) 
-                                  + " scored " + score 
-                                  + " (testing took " + Timer.time(System.currentTimeMillis()-startTime) + ")");
-                }
+                logger.info(()=>"Tester: testing " + tsw); 
+                val startTime = System.currentTimeMillis();
+                val epochTime = tsWeight.runtime;
+                val score = test(epoch as Int, tsWeight.weight); // can take a long time
+                logger.notify(()=>new Date() + " Tester:Epoch " + epoch + " took " + Timer.time(epochTime) 
+                              + " scored " + score 
+                              + " (testing took " + Timer.time(System.currentTimeMillis()-startTime) + ")");
             }
         } // while done
         logger.info(()=>"Tester: Exited main loop.");
