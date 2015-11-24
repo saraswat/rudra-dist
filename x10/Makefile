@@ -45,7 +45,9 @@ X10CXX_POSTARGS += -cxx-postarg -L$(RUDRA_LIB) -cxx-postarg -lrudra -cxx-postarg
 # TODO: Do this in a system generic way, this is obtained by
 # by splicing -cxx-postarg in between the terms returned by python2.7-config --ldflags
 # and quoting
-X10CXX_POSTARGS += -cxx-postarg -L/usr/lib/python2.7/config-x86_64-linux-gnu -cxx-postarg -L/usr/lib64 -cxx-postarg -lpthread -cxx-postarg -ldl  -cxx-postarg -lutil -cxx-postarg -lm  -cxx-postarg -lpython2.7 -cxx-postarg -Xlinker -cxx-postarg -export-dynamic -cxx-postarg "-Wl,-O1" -cxx-postarg "-Wl,-Bsymbolic-functions"
+ifeq ($(RUDRA_LEARNER),rudralearner-theano)
+    X10CXX_POSTARGS += -cxx-postarg -L/usr/lib/python2.7/config-x86_64-linux-gnu -cxx-postarg -L/usr/lib64 -cxx-postarg -lpthread -cxx-postarg -ldl  -cxx-postarg -lutil -cxx-postarg -lm  -cxx-postarg -lpython2.7 -cxx-postarg -Xlinker -cxx-postarg -export-dynamic -cxx-postarg "-Wl,-O1" -cxx-postarg "-Wl,-Bsymbolic-functions"
+endif
 
 all: rudra
 rudra: src/rudra/Rudra.x10 src/rudra/Learner.x10 src/rudra/Tester.x10 src/rudra/ImmedLearner.x10 src/rudra/ImmedReconciler.x10 src/rudra/ApplyLearner.x10 src/rudra/ApplyReconciler.x10 src/rudra/HardSync.x10 src/rudra/AtLeastRAllReducer.x10 src/rudra/NativeLearner.x10 src/rudra/util/*SwapBuffer.x10 src/rudra/util/Timer.x10 src/rudra/util/Logger.x10 
