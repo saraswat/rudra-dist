@@ -7,11 +7,10 @@ rudra-theano:
 
 # Rudra with IBM custom C++/OpenMP learner.
 # See https://github.rtp.raleigh.ibm.com/rudra/rudra-learner
-rudra-basic:
+rudra-basic:    lib/librudralearner-basic.so
 	mkdir -p include
 	mkdir -p lib
 	cd cpp && make
-	cd theano && make
 	cd x10 && make X10RTIMPL=mpi RUDRA_LEARNER=rudralearner-basic
 
 rudra-mock:
