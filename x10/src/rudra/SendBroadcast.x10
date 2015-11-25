@@ -158,6 +158,7 @@ public class SendBroadcast(hardSync:Boolean, confName:String, noTest:Boolean,
             val SUnits = S/mbSize, beatCountUnits = beatCount/mbSize;
             var gradient: Rail[Float] = SUnits > 1un? new Rail[Float](size) : null;
             while (totalMBProcessed < maxMB) {
+                logger.info(()=> totalMBProcessed + " ** " + maxMB);
                 logger.info(()=> "PS.main: Waiting for gradBuffer");
                 val rail = gradBuffer.get(); // blocking
                 updateTimer.tic();

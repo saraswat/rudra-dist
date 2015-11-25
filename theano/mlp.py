@@ -49,7 +49,11 @@ class Model(object):
         hidden = T.tanh(T.dot(self.x, self.W1) + self.b1)
         p_y_given_x = T.nnet.softmax(T.dot(hidden, self.W2) + self.b2)
         pred = T.argmax(p_y_given_x, axis=1)
-        nll = -T.mean(T.log(p_y_given_x)[T.arange(self.y.shape[0]), T.arange(self.y.shape[0])])
+        #nll = -T.mean(T.log(p_y_given_x)[T.arange(self.y.shape[0]), T.arange(self.y.shape[0])])
+        # self.y.argmax(axis=1) this is just the target index.
+        # Currently y is defined as a matrix with the one hot encoding.
+        # If Rudra can pass y as a index of the target, this could give a very small speed up
+        nll = -T.mean(T.log(p_y_given_x)[T.arange(self.y.shape[0]), self.y.argmax(axis=1)])
 
         L2_sqr = (self.W1 ** 2).sum() + (self.W2 ** 2).sum()
 
@@ -131,7 +135,7 @@ class Model(object):
             s = t
 
         upp = [(o_p, n_p) for o_p, n_p in zip(self.params, new_params)]
-        f_update_params = theano.function([self.x, self.y], [], updates=upp)
+        f_update_params = theano.function([], [], updates=upp)
         f_update_params()
         """
         s = 0
