@@ -59,7 +59,7 @@ class Model(object):
 
         cost = nll + L2_sqr * as_f32(0.0001)
 
-        gparams = [T.grad(cost, param) for param in self.params]
+        gparams = T.grad(cost, self.params)
 
         gs = [(grad, gparam) for grad, gparam in zip(self.grads, gparams)]
         #f_gshared = theano.function([x, y], [], updates=gs]  # not required if we do update as part of train
@@ -151,17 +151,13 @@ class Model(object):
     # This should be update gradients NOT update parameters ** upd_grads **
     def upd_grads(self, buf, numMB):
         s = 0
-        new_grads = []
         for g in self.grads:
             g_val = g.get_value(borrow=True)
             t = s + g_val.size
             new_g = numpy.reshape(buf[s:t], g_val.shape)
+            g.set_value(new_g)  # Can we use borrow=True? I don't think so, but I'm not 100% sure.
             new_grads.append(new_g)
             s = t
-
-        upg = [(o_p, n_p) for o_p, n_p in zip(self.grads, new_grads)]
-        f_update_grads = theano.function([self.x, self.y], [], updates=upg)
-        f_update_grads()
 
         # Also update the params with these (all-reduced) grads
         self.pup()
