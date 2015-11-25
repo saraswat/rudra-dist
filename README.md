@@ -24,6 +24,10 @@ To build Theano learner:
 
     $ cd theano && make
 
+Two transports are avaialable -- sockets and mpi. (Note: mpi does
+not currently work on the IBM-internal dcc system.)
+
+Below, you can replace |mpi| with |sockets|.
 To build rudra-dist with the Theano learner:
 
     $ cd x10 && make X10RTIMPL=mpi RUDRA_LEARNER=rudralearner-theano
