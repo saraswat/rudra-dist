@@ -170,37 +170,35 @@ import x10.io.Unserializable;
         var weights:TimedWeightWRuntime= new TimedWeightWRuntime(networkSize);
         var lastTested:UInt=0un;
         def initialize() {
-            if (!noTest) {
-                async new Tester(confName, new Logger(lt), solverType).run(networkSize, toTester);
-            }
+            if (noTest) return;
+            async new Tester(confName, new Logger(lt), solverType).run(networkSize, toTester);
         }
 
         def touch() { touch(null); }
 
-        def touch(var tw:TimedWeight):void {
-            if (!noTest) {
-                // Called by place 0 learner or PS: Test for epoch transition.
-                // Try to get a Tester to run with these weights
-                val ts = tw==null? getTotalMBProcessed() : tw.timeStamp();
-                val thisEpoch = ts/mbPerEpoch;
-                if (thisEpoch <= epoch) return;
-                val oldEpoch = epoch;
-                val epochEndTime = System.nanoTime();
-                val epochRuntime = epochEndTime-epochStartTime;
-                val timeTaken = Timer.time(epochRuntime);
-                //            logger.emit(()=>"Learner: Epoch "  + oldEpoch + " took " + timeTaken);
-                epoch = thisEpoch;
-                epochStartTime=epochEndTime;
-                if (tw == null) serializeWeights(weights.weightRail());
-                else  Rail.copy(tw.weightRail(), weights.weightRail());
-                weights.setTimeStamp(oldEpoch);
-                weights.setRuntime(epochRuntime/(1000*1000)); // in ms.
-                val w = weights;
-                logger.emit(()=>"Learner: Pinging tester with "  + w);
-                weights = toTester.put(weights);
-                if (weights != w) lastTested=oldEpoch;
-                logger.info(()=>"Learner: Tester "+(weights!=w?"accepted " : "did not accept ")+w);
-            }
+        def touch(tw:TimedWeight):void {
+            if (noTest) return;
+            // Called by place 0 learner or PS: Test for epoch transition.
+            // Try to get a Tester to run with these weights
+            val ts = tw==null? getTotalMBProcessed() : tw.timeStamp();
+            val thisEpoch = ts/mbPerEpoch;
+            if (thisEpoch <= epoch) return;
+            val oldEpoch = epoch;
+            val epochEndTime = System.nanoTime();
+            val epochRuntime = epochEndTime-epochStartTime;
+            val timeTaken = Timer.time(epochRuntime);
+            //            logger.emit(()=>"Learner: Epoch "  + oldEpoch + " took " + timeTaken);
+            epoch = thisEpoch;
+            epochStartTime=epochEndTime;
+            if (tw == null) serializeWeights(weights.weightRail());
+            else  Rail.copy(tw.weightRail(), weights.weightRail());
+            weights.setTimeStamp(oldEpoch);
+            weights.setRuntime(epochRuntime/(1000*1000)); // in ms.
+            val w = weights;
+            logger.emit(()=>"Learner: Pinging tester with "  + w);
+            weights = toTester.put(weights);
+            if (weights != w) lastTested=oldEpoch;
+            logger.info(()=>"Learner: Tester "+(weights!=w?"accepted " : "did not accept ")+w);
         }
 
         def finalize() {

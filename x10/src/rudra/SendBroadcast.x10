@@ -105,9 +105,9 @@ public class SendBroadcast(hardSync:Boolean, confName:String, noTest:Boolean,
         } // accept
         def run() {
             logger.info(()=>"PS: Starting initialize");
-            val testManager = (this as Learner).new TestManager(noTest, solverType);
+            val testManager = noTest ? null : (this as Learner).new TestManager(noTest, solverType);
             val mbSize = getMBSize() as UInt;
-            testManager.initialize();
+            if (testManager!= null) testManager.initialize();
             epochStartTime  = System.nanoTime();
             initWeightsIfNeeded(weightsFile);
 
@@ -197,11 +197,11 @@ public class SendBroadcast(hardSync:Boolean, confName:String, noTest:Boolean,
                     logger.info(()=> "PS.main: bcasting, countToBcast="+ cb1 
                                 + " weightAge=" + wa + " wt=" + w);
                     logger.info(()=> "PS: 1 pinging test Manager " + w);
-                    testManager.touch(w);                     
+                    if (testManager!=null) testManager.touch(w);                     
                     weights = toLearners.put(weights); // bcast to learners
                 } else {
                     logger.info(()=> "PS.main: 2 pinging test Manager");
-                    testManager.touch();                     
+                    if (testManager!=null) testManager.touch();                     
                 }
                updateTimer.toc();
             } // while
@@ -213,8 +213,11 @@ public class SendBroadcast(hardSync:Boolean, confName:String, noTest:Boolean,
                 weights = toLearners.put(weights);
             }
             done.set(true);
-            testManager.finalize();
-            logger.info(()=> "PS.main: Finished. TestManager finalized.");
+            logger.info(()=> "PS.main: Finished.");
+            if (testManager!=null) {
+                testManager.finalize();
+                logger.info(()=> "TestManager finalized.");
+            }
             logger.notify(()=>""+xferTimer);
             logger.notify(()=>""+updateTimer);
         } // initialize
