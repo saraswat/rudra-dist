@@ -42,9 +42,13 @@ Note:
 
 # Verifying that the basic Theano program runs
 
-Try running with mlp.py:
+For the Theano learner, because of the current limitation that only one NN model can be used per process, we have to use -nwMode send_broadcast, and also (for now) -noTest (testing is currently in-process and creates its own copy of the NN model). 
 
-    $ ./rudra -f examples/theano-mnist.cfg -ll 0 -lr 0 -lt 0  -lu 0 
+send_broadcast requires at least two processes (= X10 places) ... one serves as a parameter server. You set the number of places with an environment variable (export X10_NPLACES=2). 
+
+Try running with mlp.py:
+    $ export X10_NPLACES=2
+    $ ./rudra -f examples/theano-mnist.cfg -nwMode send_broadcast -noTest -ll 0 -lr 0 -lt 0  -lu 0 
 
 Log level 0 (TRACING) prints the maximum amount of information. If you don't want it, skip the -l* flags.
 
