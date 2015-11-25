@@ -173,7 +173,7 @@ size_t learner_netsize(void *net) {
 static float _learner_call2(PyObject *net, const char *meth, size_t batchSize,
                             const float *features, ssize_t numInputDims,
                             const float *targets, ssize_t numClasses) {
-  fprintf(stderr, "Making a _learner_call2\n");
+  fprintf(stderr, "Making a _learner_call2: %s\n", meth);
   PyObject *fdata = NULL;
   PyObject *tdata = NULL;
   PyObject *res = NULL;
@@ -277,6 +277,7 @@ static void _learner_call1(void *net, const char *meth, float *data) {
   fprintf(stdout, "_learner_call1 returned %p.", udata);
   if (udata == NULL || PyErr_Occurred()) {
     // TODO: indicate error?
+    fprintf(stdout, "_learner_call1: could not create udata array.\n");
     PyErr_PrintEx(1);
     return;
   }
@@ -286,11 +287,10 @@ static void _learner_call1(void *net, const char *meth, float *data) {
   /* Make sure the python function did not keep references */
   assert(udata->ob_refcnt == 1);
   Py_DECREF(udata);
-  fprintf(stdout, "_learner_call1: returned. printing exception. (Dummy: %s)\n", "a");
-  PyErr_PrintEx(1);
 
   if (res == NULL || PyErr_Occurred()) {
     // TODO: indicate error?
+    fprintf(stderr, "Error calling %s function", meth);
     PyErr_PrintEx(1);
     return;
   }
