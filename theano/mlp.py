@@ -90,7 +90,7 @@ class Model(object):
         s = 0
         for g in self.grads:
             s = self.updbuf(buf, g.get_value(borrow=True), s)
-        #import pdb;pdb.set_trace()
+        #import pdb; pdb.set_trace()
         print buf[0:5]
         print buf.sum()
 
@@ -116,6 +116,9 @@ class Model(object):
 
             s = self.updbuf(buf, val, s)
 
+        print 'Buf mean: ', buf.mean()
+        print 'buf[0:5]: ', buf[0:5]
+
     def set_params(self, buf):
         print(self)
         s = 0
@@ -128,7 +131,7 @@ class Model(object):
             s = t
 
         upp = [(o_p, n_p) for o_p, n_p in zip(self.params, new_params)]
-        f_update_params = theano.function([], [], updates=upp)
+        f_update_params = theano.function([self.x, self.y], [], updates=upp)
         f_update_params()
         """
         s = 0
