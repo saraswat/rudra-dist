@@ -160,7 +160,7 @@ class Model(object):
             s = t
 
         upg = [(o_p, n_p) for o_p, n_p in zip(self.grads, new_grads)]
-        f_update_grads = theano.function([self.x, self.y], [], updates=upg)
+        f_update_grads = theano.function([], [], updates=upg)
         f_update_grads()
 
         # Also update the params with these (all-reduced) grads
