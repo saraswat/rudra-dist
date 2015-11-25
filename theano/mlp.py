@@ -59,7 +59,7 @@ class Model(object):
 
         cost = nll + L2_sqr * as_f32(0.0001)
 
-        gparams = [T.grad(cost, param) for param in self.params]
+        gparams = T.grad(cost, self.params)
 
         gs = [(grad, gparam) for grad, gparam in zip(self.grads, gparams)]
         #f_gshared = theano.function([x, y], [], updates=gs]  # not required if we do update as part of train
