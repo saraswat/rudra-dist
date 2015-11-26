@@ -173,7 +173,7 @@ size_t learner_netsize(void *net) {
 static float _learner_call2(PyObject *net, const char *meth, size_t batchSize,
                             const float *features, ssize_t numInputDims,
                             const float *targets, ssize_t numClasses) {
-  fprintf(stderr, "Making a _learner_call2: %s\n", meth);
+  //fprintf(stderr, "Making a _learner_call2: %s\n", meth);
   PyObject *fdata = NULL;
   PyObject *tdata = NULL;
   PyObject *res = NULL;
@@ -249,7 +249,7 @@ static float _learner_call2(PyObject *net, const char *meth, size_t batchSize,
   Py_XDECREF(tdata);
   Py_XDECREF(res);
 
-  fprintf(stderr, "Finished _learner_call2\n");
+  //fprintf(stderr, "Finished _learner_call2\n");
   return error;
 }
 
@@ -271,10 +271,10 @@ static void _learner_call1(void *net, const char *meth, float *data) {
   PyObject *udata = NULL;
   PyObject *res = NULL;
   npy_intp len = learner_netsize(net);
-  fprintf(stderr, "Making _learner_call1: %s\n", meth);
+  //  fprintf(stderr, "Making _learner_call1: %s\n", meth);
   udata = PyArray_New(&PyArray_Type, 1, &len, NPY_FLOAT32, NULL, data,
                       4, NPY_ARRAY_OUT_ARRAY, NULL);
-  fprintf(stdout, "_learner_call1 returned %p.", udata);
+  //  fprintf(stdout, "_learner_call1 returned %p.", udata);
   if (udata == NULL || PyErr_Occurred()) {
     // TODO: indicate error?
     fprintf(stdout, "_learner_call1: could not create udata array.\n");
@@ -295,7 +295,7 @@ static void _learner_call1(void *net, const char *meth, float *data) {
     return;
   }
   Py_DECREF(res);
-  fprintf(stderr, "Finished _learner_call1: %s\n", meth);
+  //  fprintf(stderr, "Finished _learner_call1: %s\n", meth);
 }
 
 void learner_getgrads(void *net, float *updates) {

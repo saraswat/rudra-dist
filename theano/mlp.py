@@ -15,8 +15,8 @@ class Model(object):
     def __init__(self, params):
         # This should respect the spec in params rather than use the
         # fixed arch below.
-        print("In init.")
-        print(str(self))
+#        print("In init.")
+#        print(str(self))
 
         self.W1 = theano.shared(value=numpy.asarray(
                 numpy.random.uniform(
@@ -95,8 +95,8 @@ class Model(object):
         for g in self.grads:
             s = self.updbuf(buf, g.get_value(borrow=True), s)
         #import pdb; pdb.set_trace()
-        print buf[0:5]
-        print buf.sum()
+#        print buf[0:5]
+#        print buf.sum()
 
     def acc_grads(self, buf):
         s = 0
@@ -120,8 +120,8 @@ class Model(object):
 
             s = self.updbuf(buf, val, s)
 
-        print 'Buf mean: ', buf.mean()
-        print 'buf[0:5]: ', buf[0:5]
+#        print 'Buf mean: ', buf.mean()
+#        print 'buf[0:5]: ', buf[0:5]
 
     def set_params(self, buf):
         print(self)
@@ -156,7 +156,7 @@ class Model(object):
             t = s + g_val.size
             new_g = numpy.reshape(buf[s:t], g_val.shape)
             g.set_value(new_g)  # Can we use borrow=True? I don't think so, but I'm not 100% sure.
-            new_grads.append(new_g)
+#            new_grads.append(new_g)
             s = t
 
         # Also update the params with these (all-reduced) grads
@@ -170,6 +170,6 @@ class Model(object):
         """
 
 def myinit(params):
-    print("Golden: In init with params ")
-    print(str(params))
+#    print("Golden: In init with params ")
+#    print(str(params))
     return Model(params)
