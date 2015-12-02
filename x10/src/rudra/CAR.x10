@@ -34,8 +34,8 @@ public class CAR(CRAB:boolean, confName:String, noTest:Boolean,
                  adarho:Float, adaepsilon:Float,
 
                  spread:UInt, H:Float, S:UInt, 
-                 ll:Int, lt:Int, ln:Int)   {
-    val logger = new Logger(ll);
+                 ll:Int, lr:Int, lt:Int, ln:Int)   {
+    val logger = new Logger(lr);
     static class State(reconcilerNL:NativeLearner, logger:Logger) implements Unserializable { 
         val monitor = new Monitor();
         var sizeMB:UInt = 0un; // #MB processed since last pickup

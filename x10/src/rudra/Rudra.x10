@@ -128,7 +128,7 @@ public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
                     solverType, seed, mom, lrmult, 
                     adarho, adaepsilon,
                     spread, H, S, 
-                    ll, lt, ln).run();
+                    ll, lr, lt, ln).run();
             return;
         }
 
