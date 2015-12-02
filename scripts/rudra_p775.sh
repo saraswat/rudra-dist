@@ -8,11 +8,12 @@ fi
 
 : ${RUDRA_HOME:?"Need to set RUDRA_HOME"}
 source $RUDRA_HOME/rudra.profile
-if [ ! -x $RUDRA_HOME/cpp/rudra ]
+if [ ! -x $RUDRA_HOME/rudra ]
 then
-    echo "executable $RUDRA_HOME/cpp/rudra doesn't exist or it is not executable"
+    echo "executable $RUDRA_HOME/rudra doesn't exist or it is not executable"
 fi
 
+: ${RUDRA_LEARNER_HOME:?"Need to set RUDRA_LEARNER_HOME"}
 
 conf_file=$1
 if [ ! -r "$conf_file" ];
@@ -31,17 +32,8 @@ fi
 tasks_per_node=4
 
 job_id=$3
-sc=4 # by default smart
-sync_level=$4
-if [ "$sync_level" == "hard" ] 
-then
-sl=0
-elif [ "$sync_level" == "smart" ]
-then 
-sl=4
-else
-echo "$sync_level is not a legit sync level, legit sync level: hard|smart"
-fi
+nwMode=4 # by default apply
+nwMode?=$4
 tmpCmdFile=$job_id.cmd
 rm -fr $tmpCmdFile
 
@@ -56,11 +48,12 @@ echo "#@ bulkxfer = yes" >> $tmpCmdFile
 echo "#@ collective_groups = 4" >> $tmpCmdFile # disabled on May 8, 2015, as it seems p775 is not supporting it, at least temporarily.
 echo "#@ class = day" >> $tmpCmdFile
 echo "#@ queue" >> $tmpCmdFile
-echo  "source $RUDRA_HOME/rudra.profile" >> $tmpCmdFile
+echo "source $RUDRA_HOME/rudra.profile" >> $tmpCmdFile
+echo "source $RUDRA_LEARNER_HOME/rudra-learner.profile" >> $tmpCmdFile
 echo "export OMP_NUM_THREADS=4" >> $tmpCmdFile
 echo "export X10_NTHREADS=4" >> $tmpCmdFile
+echo "export X10_NUM_IMMEDIATE_THREADS=1" >> $tmpCmdFile
 echo "export MP_SHARED_MEMORY=yes" >> $tmpCmdFile
-echo "export JAVA_HOME=/opt/ibm/ibm-java-ppc64-70/jre" >> $tmpCmdFile
-echo "export PATH=\$PATH:/opt/ibmcmp/vacpp/12.1/bin/" >> $tmpCmdFile
-echo "poe $RUDRA_HOME/cpp/rudra -f $conf_file -sl $sl -sc 3 -ll 1 -j $job_id" >> $tmpCmdFile
+#echo "poe $RUDRA_HOME/rudra -f $conf_file -s adagrad -hard -ln 3 -ll 2 -lr 2 -j $job_id" >> $tmpCmdFile
+echo "poe $RUDRA_HOME/rudra -f $conf_file -s adagrad -nwMode $nwMode -ln 3 -ll 2 -lr 2 -j $job_id" >> $tmpCmdFile
 llsubmit $tmpCmdFile
