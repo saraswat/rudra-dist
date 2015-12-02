@@ -1,11 +1,6 @@
 package rudra.util;
 
-import x10.compiler.NonEscaping;
-import x10.compiler.Volatile;
-
-import x10.util.concurrent.AtomicReference;
 import x10.compiler.Pinned;
-import x10.io.Unserializable;
 import rudra.util.Logger;
 /**
    A very specialized non-blocking one-place swapping buffer which communicates 

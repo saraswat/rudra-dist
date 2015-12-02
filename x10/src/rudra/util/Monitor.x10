@@ -78,7 +78,9 @@ public class Monitor(increase:Boolean) {
 		while(threads(s)==thisWorker) {
 		    logger.info(suspending);
 		    unlock();
+	        if (increase) Runtime.increaseParallelism();
 		    Worker.park();
+	        if (increase) Runtime.decreaseParallelism(1n);
 		    logger.info(retrying);
 		    lock();
 		}
