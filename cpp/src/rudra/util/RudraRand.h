@@ -6,8 +6,8 @@ namespace rudra{
     class RudraRand{
     public:
 	// vj TODO: conditionalize this to use nrand48 for macos and drand48 where it exists
-	//	drand48_data dd;
-	unsigned short  dd[3];
+	drand48_data dd;
+	//unsigned short  dd[3];
 	RudraRand& operator=(const RudraRand& rhs);// overload assignment
 	int rank;
 	int threadid;
