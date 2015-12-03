@@ -112,9 +112,8 @@ import x10.io.Unserializable;
         getGradients(cg.grad);    
         //        logger.info(()=>"Learner: produced " + cg);
         cgTimer.toc();
-        if (here.id==1) 
-            logger.notify(()=>"Learner: train error=" + e
-                          + " at time=" + ts + "(" + cgTimer.lastDurationMillis()+" ms)");
+        logger.notify(()=>"Learner: train error=" + e
+                      + " at time=" + ts + "(" + cgTimer.lastDurationMillis()+" ms)");
     }
     public def deliverGradient(cg:TimedGradient, 
                                fromLearner:SwapBuffer[TimedGradient]):TimedGradient {
