@@ -21,18 +21,10 @@ public class Monitor(increase:Boolean) {
     public def this() { this(true);}
     public def this(b:Boolean) { property(b);}
 
-    /**
-     * When an activity blocks, its underlying thread will block, with FJ
-     * scheduling. Therefore tell the runtime to ensure that there is another
-     * thread available to execute asyncs.
-     */
     protected def lock() {
-	if (! lock.tryLock()) {
-	    if (increase) Runtime.increaseParallelism();
 	    lock.lock();
-	    if (increase) Runtime.decreaseParallelism(1n);
-	}
     }
+
     protected def unlock() { lock.unlock();}
     
     static val TRUE = ()=>true;
@@ -68,23 +60,26 @@ public class Monitor(increase:Boolean) {
      */
     public def on[T](cond:()=>Boolean, action:()=>T):T {
 	try {
-	    lock();
-	    logger.info(() => "Monitor: "+ this +  " 0 trying cond " + cond);
-	    
-	    while (!cond()) {
-		val thisWorker = Runtime.worker();
-		val s = size;
-		threads(size++)=thisWorker; 
-		while(threads(s)==thisWorker) {
-		    logger.info(suspending);
-		    unlock();
-	        if (increase) Runtime.increaseParallelism();
-		    Worker.park();
-	        if (increase) Runtime.decreaseParallelism(1n);
-		    logger.info(retrying);
-		    lock();
-		}
-	    }
+        // When an activity blocks, its underlying thread will block, with FJ
+        // scheduling. Therefore tell the runtime to ensure that there is another
+        // thread available to execute asyncs.
+        if (increase) Runtime.increaseParallelism();
+        lock();
+        logger.info(() => "Monitor: "+ this +  " 0 trying cond " + cond);
+        
+        while (!cond()) {
+            val thisWorker = Runtime.worker();
+            val s = size;
+            threads(size++)=thisWorker; 
+            while(threads(s)==thisWorker) {
+                logger.info(suspending);
+                unlock();
+                Worker.park();
+                logger.info(retrying);
+                lock();
+            }
+        }
+        if (increase) Runtime.decreaseParallelism(1n);
 	    logger.info(()=>"Monitor: " + this  + " 1 action " + action);
 	    val result=action();
 	    // now awaken everyone to try.
