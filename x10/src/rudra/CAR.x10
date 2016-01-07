@@ -10,7 +10,6 @@ import x10.util.concurrent.AtomicBoolean;
 import x10.util.concurrent.AtomicInteger;
 import x10.util.Team;
 import x10.io.Unserializable;
-import x10.compiler.Pinned;
 
 /** Simplified continuous allreduce implementation, does 
     not implement atLeastR feature.

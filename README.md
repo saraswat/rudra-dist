@@ -24,17 +24,21 @@ To build Theano learner:
 
     $ cd theano && make
 
-Two transports are avaialable -- sockets and mpi. (Note: mpi does
-not currently work on the IBM-internal dcc system.)
+The make variable X10RTIMPL chooses the implementation of 
+[X10RT](http://x10-lang.org/documentation/x10rt.html). You can use whichever
+versions of X10RT are supported on your platform e.g. sockets, pami, mpi.
+(Note: mpi does not currently work on the IBM-internal dcc system.)
 
-Below, you can replace |mpi| with |sockets|.
+The make variable RUDRA_LEARNER chooses between different sequential learner
+implementations e.g. basic, theano, mock.
+
 To build rudra-dist with the Theano learner:
 
-    $ cd x10 && make X10RTIMPL=mpi RUDRA_LEARNER=rudralearner-theano
+    $ cd x10 && make X10RTIMPL=mpi RUDRA_LEARNER=theano
 
 To build rudra-dist with a mock learner (for testing purposes):
 
-    $ cd x10 && make X10RTIMPL=mpi RUDRA_LEARNER=rudralearner-mock
+    $ cd x10 && make X10RTIMPL=mpi RUDRA_LEARNER=mock
 
 Note:
 
