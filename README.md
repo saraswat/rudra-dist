@@ -17,7 +17,7 @@ The default version of Rudra uses a
 for which is included in this package.
 A mock learner is also included for unit testing purposes.
 Other learners are supported by implementing the learner API in 
-`include/NativeLearner.h` . The make variable RUDRA_LEARNER chooses between
+`include/NativeLearner.h` . The make variable `RUDRA_LEARNER` chooses between
 different learner implementations e.g. basic, theano, mock.
 Setting `RUDRA_LEARNER=xxx` requires the build to link against a learner
 implementation at `lib/librudralearner-xxx.so`.
@@ -29,9 +29,9 @@ To build the default (Theano) version of Rudra, simply run:
 
 To build Rudra with a mock learner (for testing purposes):
 
-   $ make rudra-mock
+    $ make rudra-mock
 
-The make variable X10RTIMPL chooses the implementation of 
+The make variable `X10RTIMPL` chooses the implementation of 
 [X10RT](http://x10-lang.org/documentation/x10rt.html). You can use whichever
 versions of X10RT are supported on your platform e.g. sockets, pami, mpi.
 (Note: mpi does not currently work on the IBM-internal dcc system.)
