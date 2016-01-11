@@ -93,8 +93,8 @@ public class NativeLearner {
     @Native("c++", "#this->getMBSize()")
     public def getMBSize():Long { return -1; }
             
-    @Native("c++", "#this->testOneEpochSC(#weights->raw, #numTesters)")
-        public def testOneEpochSC(weights:Rail[Float], numTesters:Long):Float {
+    @Native("c++", "#this->testOneEpochSC(#weights->raw, #numTesters, #myIndex)")
+        public def testOneEpochSC(weights:Rail[Float], numTesters:Long, myIndex:Long):Float {
         return -3.0f;
     }
 

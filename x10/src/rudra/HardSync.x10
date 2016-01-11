@@ -13,11 +13,11 @@ import x10.util.Team;
  */
 public class HardSync(maxMB:UInt, noTest:Boolean, weightsFile:String) extends Learner {
     public def this(confName:String, noTest:Boolean, 
-                    weightsFile: String, mbPerEpoch:UInt, profiling:Boolean, 
+                    weightsFile: String, mbPerEpoch:UInt, 
                     team:Team, logger:Logger, lt:Int, solverType:String,
                     nLearner:NativeLearner, 
                     maxMB:UInt) {
-        super(confName, mbPerEpoch, 0un, profiling, nLearner, team, logger, lt, solverType);
+        super(confName, mbPerEpoch, 0un, nLearner, team, logger, lt, solverType);
         property(maxMB, noTest, weightsFile);
     }
     val trainTimer     = new Timer("Training Time:");
@@ -43,7 +43,7 @@ public class HardSync(maxMB:UInt, noTest:Boolean, weightsFile:String) extends Le
             dest.timeStamp=timeStamp;
             if (here.id==0) 
                logger.notify(()=>"Reconciler: <- Network "  
-                             + dest + "(" + allreduceTimer.lastDurationMillis()+" ms");
+                             + dest + "(" + allreduceTimer.lastDurationMillis()+" ms)");
             weightTimer.tic();
             acceptNWGradient(dest);
             weightTimer.toc();

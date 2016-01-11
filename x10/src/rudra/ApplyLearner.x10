@@ -13,9 +13,9 @@ import x10.compiler.Pinned;
 @Pinned public class ApplyLearner extends Learner implements Unserializable {
     val mm:MergingMonitor;
     public def this(confName:String, mbPerEpoch:UInt, spread:UInt, 
-                    profiling:Boolean, done:AtomicBoolean, mm: MergingMonitor,
+                    done:AtomicBoolean, mm: MergingMonitor,
                     team:Team, logger:Logger, lt:Int, nLearner:NativeLearner) {
-        super(confName, mbPerEpoch, spread, profiling, done, nLearner, team, logger, lt);
+        super(confName, mbPerEpoch, spread, done, nLearner, team, logger, lt);
         this.mm=mm;
     }
 

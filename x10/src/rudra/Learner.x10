@@ -11,7 +11,6 @@ import x10.util.Team;
 import x10.io.Unserializable;
 
 @Pinned public class Learner(confName: String, mbPerEpoch:UInt, spread:UInt, 
-                     profiling:boolean,
                      nLearner: NativeLearner, 
                      team:Team, logger:Logger, lt:Int,
                      solverType:String) implements Unserializable {
@@ -163,13 +162,19 @@ import x10.io.Unserializable;
     public def getTotalMBProcessed():UInt = totalMBProcessed;
     var epochStartTime:Long = 0;
 
-    public class TestManager(noTest:Boolean, solverType:String) { // instance created at here.id==0
+    /**
+     * The TestManager runs at Place 0 (alongside either a parameter server or a
+     * learner) and sends weights to the Tester, which performs testing at
+     * Place(P-1).
+     */
+    public class TestManager(noTest:Boolean, solverType:String) {
         val toTester = new BlockingRXchgBuffer[TimedWeightWRuntime](new TimedWeightWRuntime(networkSize));
         var weights:TimedWeightWRuntime= new TimedWeightWRuntime(networkSize);
         var lastTested:UInt=0un;
         def initialize() {
             if (noTest) return;
-            async new Tester(confName, new Logger(lt), solverType).run(networkSize, toTester);
+            val testerPlace = Place.places()(Place.numPlaces()-1);
+            async new Tester(testerPlace, confName, new Logger(lt), solverType).run(networkSize, toTester);
         }
 
         def touch() { touch(null); }

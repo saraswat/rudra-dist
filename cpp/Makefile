@@ -90,5 +90,5 @@ clean:
 	-$(RM) $(RUDRA_LIB_OBJS)
 	-@echo ' '
 
-.PHONY: all clean copy_headers
+.PHONY: all clean
 .SECONDARY:

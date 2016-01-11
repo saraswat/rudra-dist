@@ -20,8 +20,6 @@ import rudra.util.Maybe;
  */
 public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
                    jobDir:String, weightsFile:String, meanFile:String, 
-                   profiling:Boolean,                    
-
                    solverType:String, seed:Int, mom:Float, lrmult:Float,
                    adarho:Float, adaepsilon:Float,
 
@@ -89,33 +87,45 @@ public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
     }
 
     val logger = new Logger(lu);
-    val P = Place.numPlaces();
-    val group = PlaceGroup.make(P);
-    val team = new Team(group);
+    val nLearners = noTest ? Place.numPlaces() : (Place.numPlaces() - 1);
+    val learnerGroup = PlaceGroup.make(nLearners);
 
     public def run():void {
-        if (nwMode == NW_SEND_BROADCAST) {
+        if (!noTest) {
             if (Place.numPlaces() < 2) {
+                throw new Exception("running with testing enabled requires at least two places!  To run on a single place, specify -noTest");
+            }
+            val testerPlace = Place.places()(Place.numPlaces()-1);
+            at(testerPlace) {
+                Learner.initNativeLearnerStatics(confName, jobDir, meanFile,
+                    seed, mom, lrmult, adarho, adaepsilon, ln);
+            }
+        }
+
+        if (nwMode == NW_SEND_BROADCAST) {
+            if (!noTest && Place.numPlaces() < 3) {
+                throw new Exception("send_broadcast mode with testing enabled requires at least three places!");
+            } else if (Place.numPlaces() < 2) {
                 throw new Exception("send_broadcast mode requires at least two places!");
-            } 
+            }
             logger.info(()=>"SB: Starting.");
-            new SendBroadcast(hardSync, confName, noTest, jobDir, weightsFile, meanFile, 
-                              profiling, 
-                              solverType, seed, mom, lrmult, 
-                              adarho, adaepsilon,
-                              spread, H, S, 
-                              ll, lt, ln)
+            new SendBroadcast(learnerGroup, hardSync, confName, noTest, jobDir,
+                    weightsFile, meanFile,
+                    solverType, seed, mom, lrmult,
+                    adarho, adaepsilon,
+                    spread, H, S,
+                    ll, lt, ln)
                 .run(beatCount, numXfers);
             return;
         } 
         if (nwMode == NW_SEND_RECEIVE) {
             logger.info(()=>"SR: Starting.");
-            new SendReceive(numXfers, noTest, confName, jobDir, weightsFile, meanFile, 
-                              profiling, 
-                              solverType, seed, mom, lrmult, 
-                            adarho, adaepsilon, 
-                              spread, 
-                              ll, lt, ln)
+            new SendReceive(learnerGroup, numXfers, noTest, confName, jobDir,
+                    weightsFile, meanFile,
+                    solverType, seed, mom, lrmult,
+                    adarho, adaepsilon,
+                    spread,
+                    ll, lt, ln)
                 .run();
             return;
         } 
@@ -123,24 +133,23 @@ public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
         if ((! hardSync) && (nwMode == NW_APPLY) && desiredR==0n) {
             logger.info(()=>"CAR: Starting.");
         
-            new CAR(CRAB, confName, noTest, jobDir, weightsFile, meanFile, profiling,
-                    solverType, seed, mom, lrmult, 
+            new CAR(learnerGroup, CRAB, confName, noTest, jobDir,
+                    weightsFile, meanFile,
+                    solverType, seed, mom, lrmult,
                     adarho, adaepsilon,
                     spread, H, S, 
-                    ll, lr, lt, ln).run();
+                    ll, lr, lt, ln)
+                .run();
             return;
         }
+
+        val team = new Team(learnerGroup);
 
         // global value, can be referenced across places
         val gCount= new GlobalRef[PhasedT[Int]](new PhasedT[Int](0n,-1n)); 
         val atleastR = new AtLeastRAllReducer(desiredR, team, new Logger(lr), gCount);
-        val _mmPLH : Maybe[PlaceLocalHandle[MergingMonitor]] = nwMode == NW_APPLY ? 
-            new Maybe[PlaceLocalHandle[MergingMonitor]](
-                 PlaceLocalHandle.make[MergingMonitor](Place.places(), 
-                 ()=> new MergingMonitor()))
-            : null;
 
-        finish for (p in Place.places()) at(p) async { // this is meant to leak in!!
+        finish for (p in learnerGroup) at(p) async { // this is meant to leak in!!
             val done = new AtomicBoolean(false);
             Learner.initNativeLearnerStatics(confName, jobDir, meanFile, 
                                              seed, mom, lrmult, 
@@ -156,7 +165,7 @@ public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
             val maxMB = (numEpochs * mbPerEpoch) as UInt;
             if (here == Place.FIRST_PLACE) {
                 logger.emit("Training with "
-                    + P + " places over "
+                    + nLearners + " places over "
                     + numTrainingSamples + " samples, "
                     + numEpochs + " epochs, "
                     + mbPerEpoch + " minibatches per epoch = "
@@ -167,7 +176,7 @@ public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
             if (hardSync) {
                 if (nwMode != NW_BUFFER) {
                     if (here.id==0) logger.info(()=> "Rudra: Starting HardSync");
-                    new HardSync(confName, noTest, weightsFile, mbPerEpoch, profiling, 
+                    new HardSync(confName, noTest, weightsFile, mbPerEpoch, 
                                  team, new Logger(ll), lt, solverType, nLearner, 
                                  maxMB).run();
                 } else {
@@ -175,7 +184,7 @@ public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
                     val fromL = SwapBuffer.make[TimedGradient](false, new TimedGradient(size));
                     val toL = SwapBuffer.make[TimedGradient](false, new TimedGradient(size));
                     val learner = new HardBufferedLearner(confName, noTest, weightsFile, 
-                                                          mbPerEpoch, profiling,
+                                                          mbPerEpoch,
                                                           team, new Logger(ll), lt, solverType,
                                                           nLearner, maxMB);
                     val reconciler = new HardBufferedReconciler(size, maxMB, 
@@ -190,7 +199,7 @@ public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
             } else if (nwMode == NW_IMMEDIATE) { // TODO: Fix the reconciler.
                 val fromLearner = SwapBuffer.make[TimedGradient](true, new TimedGradient(size));
                 val learner=new ImmedLearner(confName, noTest, 
-                                             mbPerEpoch, spread, profiling, 
+                                             mbPerEpoch, spread, 
                                              nLearner, team, new Logger(ll), lt, solverType);
                 val ir=new ImmedReconciler(size, maxMB, learner, atleastR, new Logger(lr));
                 async learner.run(fromLearner, done);
@@ -211,7 +220,6 @@ public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
                 Option("-h", "help", "Print help messages"),
                 Option("-hard", "hardsync", "Run in hard sync mode"),
                 Option("-noTest", "noTestc", "Do not run the inline tester"),
-                Option("-perf", "profiling", "Performance profiling"),
                 Option("-CRAB", "Reduce&Bcast", "Continuous Reduce and Broadcast")
             ], 
             [                               
@@ -285,7 +293,6 @@ public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
             Console.OUT.println(cmdLineParams.usage("Usage:\n"));
             return;
         }
-        val perf:Boolean       = cmdLineParams("-perf"); // performance profiling
         val noTest:Boolean     = cmdLineParams("-noTest"); // do not run the inline tester
         val CRAB:Boolean       = cmdLineParams("-CRAB"); // run CAR with reduce and bcast
 
@@ -347,7 +354,7 @@ public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
         // echo command line parameters
         bootLogger.emit("Running on " + Place.numPlaces() + " places.");
         bootLogger.emit("Running with code |" + CodeId.commitHash+ "|");
-        bootLogger.emit("rudra" + (perf?" -perf" :"")+ " -f |" + confName  + "|"
+        bootLogger.emit("rudra -f |" + confName  + "|"
                         + "\n\t -j " + jobDir + " -restart |" + weightsFile  + "|"
                         + " -meanFile |" + meanFile + "|"
                         + "\n\t -s |" + solverType + "| -seed " + seed 
@@ -370,8 +377,6 @@ public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
                         + " -ln " + Logger.levelString(ln));
         val rudra = new Rudra(CRAB, confName, noTest,
                               jobDir, weightsFile, meanFile,
-                              perf, 
-
                               solverType, seed, mom, lrmult,
 
                               adrho, adepsilon,

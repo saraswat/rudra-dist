@@ -25,9 +25,9 @@ import x10.io.Unserializable;
 
     @author vj
  **/
-public class CAR(CRAB:boolean, confName:String, noTest:Boolean,
+public class CAR(learnerGroup:PlaceGroup, CRAB:Boolean,
+                 confName:String, noTest:Boolean,
                  jobDir:String, weightsFile:String, meanFile:String, 
-                 profiling:Boolean, 
                  solverType:String, seed:Int, mom:Float, lrmult:Float,
 
                  adarho:Float, adaepsilon:Float,
@@ -91,13 +91,12 @@ public class CAR(CRAB:boolean, confName:String, noTest:Boolean,
 
     def run() {
         // TODO change getNetworkSize etc to be statics.
-        val P = Place.numPlaces();
-        val team = Team.WORLD; // new Team(PlaceGroup.make(P));
-        val bcastTeam = new Team(PlaceGroup.make(P));
+        val team = new Team(learnerGroup);
+        val bcastTeam = new Team(learnerGroup);
 
         logger.info(()=>"CAR: Starting Main finish.");
 
-        finish for (p in Place.places()) at(p) async { // this is meant to leak in!!
+        finish for (p in learnerGroup) at(p) async { // this is meant to leak in!!
                 logger.info(()=>"CAR: In main async.");
             val done = new AtomicBoolean(false);
             Learner.initNativeLearnerStatics(confName, jobDir, meanFile, seed, mom,lrmult, 
@@ -114,7 +113,7 @@ public class CAR(CRAB:boolean, confName:String, noTest:Boolean,
             val mbPerEpoch = ((nl.getNumTrainingSamples() + mbSize - 1) / mbSize) as UInt; 
             val maxMB = (numEpochs * mbPerEpoch) as UInt;
             //            val nLearner= Learner.makeNativeLearner(weightsFile, solverType);
-            val learner=new Learner(confName, mbPerEpoch, spread, profiling, 
+            val learner=new Learner(confName, mbPerEpoch, spread, 
                                          nl, team, new Logger(ll), lt, solverType);
             logger.info(()=>"CAR: Made learner, native learner.");
             val nlReconciler= Learner.makeNativeLearner(weightsFile, solverType);
@@ -131,7 +130,7 @@ public class CAR(CRAB:boolean, confName:String, noTest:Boolean,
 
            if (here.id == 0) 
                logger.emit("CAR: The table is set. Training with "
-                           + P + " learners over "
+                           + learnerGroup.size + " learners over "
                            + numTrainingSamples + " samples, "
                            + numEpochs + " epochs, "
                            + mbPerEpoch + " minibatches per epoch = "

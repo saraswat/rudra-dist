@@ -313,6 +313,7 @@ void learner_accgrads(void *net, float *updates) {
 }
 
 void learner_updatelr(void *net, float newLR) {
+    fprintf(stdout, "learner_updatelr: %.3f\n", newLR);
   PyObject *res;
   res = PyObject_CallMethod((PyObject *)net, "upd_lr", "f", newLR);
   if (res == NULL) {

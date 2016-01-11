@@ -98,8 +98,11 @@ public:
 	/**
 	 * Initialize the network with the given weights, score your fraction
 	 * of the test data, and return the result.
+     * @param weights a set of weights for the network to perform inference
+     * @param numTesters the total number of testing processes
+     * @param myIndex the index of this process in the set of testing processes
 	 */
-	float testOneEpochSC(float *weights, size_t numTesters);
+	float testOneEpochSC(float *weights, size_t numTesters, size_t myIndex);
 
 private:
     NativeLearnerImpl* pimpl_;

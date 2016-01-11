@@ -11,10 +11,9 @@ import x10.util.Team;
 public class ImmedLearner(noTest:Boolean) extends Learner {
 
     public def this(confName:String, noTest:Boolean, mbPerEpoch:UInt, spread:UInt, 
-                    profiling:Boolean, 
                     nLearner:NativeLearner, 
                     team:Team, logger:Logger, lt:Int, solverType:String) {
-        super(confName, mbPerEpoch, spread, profiling, nLearner, team, logger, lt, solverType);
+        super(confName, mbPerEpoch, spread, nLearner, team, logger, lt, solverType);
         property(noTest);
     }
 

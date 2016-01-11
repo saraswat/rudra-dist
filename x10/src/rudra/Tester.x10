@@ -1,14 +1,12 @@
 package rudra;
 
-import x10.util.Team;
 import x10.util.Date;
 import rudra.util.SwapBuffer;
 import rudra.util.Logger;
 import rudra.util.Timer;
 
-public class Tester(confName:String, logger:Logger, solverType:String) {
+public class Tester(testerPlace:Place, confName:String, logger:Logger, solverType:String) {
     static val P = Place.numPlaces();
-    val testerTeam = new Team(PlaceGroup.make(P));
     var weightsPLH:PlaceLocalHandle[Rail[Float]];
 
     /** Called in a separate async at place 0. Continuously runs (until done), 
@@ -45,38 +43,26 @@ public class Tester(confName:String, logger:Logger, solverType:String) {
         logger.info(()=>"Tester: Exited main loop.");
     }
 
-    /* Invoked by a learner that has access to the weights and wishes
-       to determine the test error. This is a simple map reduce computation,
-       spawn some number of tasks at different places to compute the error
-       on their portion of the data, reduce, and return the result.
+    /**
+     * Perform inference on the complete test set and return the test error.
      */
     public def test(epoch:Int, testWeights:Rail[Float]):Float {
-        Rail.copy(testWeights, weightsPLH());
-        val root = here;
-        val team = testerTeam;
-        val result = finish(Reducible.SumReducer[Float]()) {
-            //            logger.info(()=>"Tester.test: In collecting finish for epoch " + epoch);
-            for (p in Place.places()) at(p) async {
-                    //                    logger.info(()=>"Tester.test: entered collecting finish async for " + epoch);       
-                val weights = weightsPLH();
-                //                logger.info(()=>"Tester.test: receiving weights for " + epoch);       
-                team.bcast(root, weights, 0, weights, 0, weights.size);
-                //                logger.info(()=>"Tester.test: ...received. Creating learner..  " + epoch);       
-                val nn = new NativeLearner(here.id);
-                nn.initAsTester(here.id, solverType);
-                //                logger.info(()=>"Tester.test: ...created. Testing...  " + epoch);       
-                offer nn.testOneEpochSC(weights, P);
-                //                logger.info(()=>"Tester.test: ...tested and offered for " + epoch);       
-                if (p == root) {
-                      logger.info(()=>"Tester:Starting checkpoint if needed.");
-                    if (true) nn.checkpointIfNeeded(epoch);
-                    logger.info(()=>"Tester:Checkpoint finished.");
-                }
-                nn.cleanup();
-            }
+        val testWeightsGR = new GlobalRail(testWeights);
+        val result = at(testerPlace) {
+            val weights = new Rail[Float](testWeightsGR.size);
+            finish Rail.asyncCopy(testWeightsGR, 0, weights, 0, weights.size);
+            val nn = new NativeLearner(here.id);
+            nn.initAsTester(here.id, solverType);
+            logger.info(()=>"Tester:Starting testing.");
+            val res = nn.testOneEpochSC(weights, 1, 0);
+            logger.info(()=>"Tester:Starting checkpoint if needed.");
+            nn.checkpointIfNeeded(epoch);
+            logger.info(()=>"Tester:Checkpoint finished.");
+            nn.cleanup();
+            return res;
         };
-        logger.info(()=>"Tester.test: have result for " + epoch);       
-        return result*1.0f/P;
+
+        return result;
     }
 
 }

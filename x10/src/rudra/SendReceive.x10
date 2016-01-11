@@ -19,9 +19,9 @@ import x10.io.Unserializable;
 
   @author vj
  */
-public class SendReceive(numXfers:UInt, noTest:Boolean, confName:String, 
+public class SendReceive(learnerGroup:PlaceGroup, numXfers:UInt,
+                         noTest:Boolean, confName:String, 
                            jobDir:String, weightsFile:String, meanFile:String, 
-                           profiling:Boolean, 
                          solverType:String, seed:Int, mom:Float, lrmult:Float,
                          adarho:Float, adaepsilon:Float,
                            spread:UInt, 
@@ -67,9 +67,8 @@ public class SendReceive(numXfers:UInt, noTest:Boolean, confName:String,
     class ParameterServer extends Learner implements Unserializable {
         public def this(confName:String, mbPerEpoch:UInt, 
                         spread:UInt, seed:Int,
-                        profiling:Boolean, 
                         team:Team, logger:Logger, lt:Int, solverType:String, nLearner:NativeLearner) {
-            super(confName, mbPerEpoch, spread, profiling, nLearner, team, logger, lt, solverType);
+            super(confName, mbPerEpoch, spread, nLearner, team, logger, lt, solverType);
         }
 
         var testManager:TestManager = null;
@@ -162,9 +161,7 @@ public class SendReceive(numXfers:UInt, noTest:Boolean, confName:String,
         } // initialize
     } // ParameterServer
     def run() {
-        val P = Place.numPlaces();
-        val numLearners = P-1;
-        val team = new Team(PlaceGroup.make(P));
+        val team = new Team(learnerGroup);
 
         Learner.initNativeLearnerStatics(confName, jobDir, meanFile, seed, mom,lrmult, 
                                          adarho, adaepsilon, ln);
@@ -180,10 +177,10 @@ public class SendReceive(numXfers:UInt, noTest:Boolean, confName:String,
         val maxMB = (numEpochs * mbPerEpoch) as UInt;
         val PS__ = new GlobalRef[ParameterServer](
                                                   new ParameterServer(confName, mbPerEpoch, 
-                                                spread, seed, profiling, team, logger, 
+                                                spread, seed, team, logger, 
                                                 lt, solverType, nl)); 
         logger.emit("SR: The table is set. Training with "
-                    + (P-1) + " learners over "
+                    + learnerGroup.size + " learners over "
                     + numTrainingSamples + " samples, "
                     + numEpochs + " epochs, "
                     + mbPerEpoch + " minibatches per epoch = "
@@ -192,10 +189,9 @@ public class SendReceive(numXfers:UInt, noTest:Boolean, confName:String,
 
         logger.info(()=>"SR: Starting Main finish.");
         finish {
-            val root = here;
             async PS__().run();
             logger.info(()=>"SR: Starting place loop");
-            for (p in Place.places()) 
+            for (p in learnerGroup) 
                 if (p.id !=0) at(p) async { 
                         Learner.initNativeLearnerStatics(confName, jobDir, meanFile,
                                                          seed, mom,lrmult, 
@@ -206,7 +202,7 @@ public class SendReceive(numXfers:UInt, noTest:Boolean, confName:String,
                         val fromLearner = SwapBuffer.make[GlobalTimedGradient](false, 
                                              new GlobalTimedGradient(size)); // blocking
                         val toLearner = new XchgBuffer[GlobalTimedWeight](new GlobalTimedWeight(networkSize)); 
-                        val learner = new Learner(confName, mbPerEpoch, spread, profiling,
+                        val learner = new Learner(confName, mbPerEpoch, spread,
                                                   nLearner, team, logger, lt, solverType);
                         learner.epochStartTime= System.nanoTime();
                         learner.initWeightsIfNeeded(weightsFile);

@@ -108,8 +108,8 @@ void NativeLearner::acceptGradients(float *grad, size_t numMB) {
     std::cout << ">>> NativeLearner::acceptGradients(" << grad << ", " << numMB << ")" << std::endl;
 }
 
-float NativeLearner::testOneEpochSC(float *weights, size_t numTesters) {
-    std::cout << ">>> NativeLearner::testOneEpochSC(" << weights << ", " << numTesters << ")" << std::endl;
+float NativeLearner::testOneEpochSC(float *weights, size_t numTesters, size_t myIndex) {
+    std::cout << ">>> NativeLearner::testOneEpochSC(" << weights << ", " << numTesters << ", " << myIndex << ")" << std::endl;
 return 100.0;
 }
 

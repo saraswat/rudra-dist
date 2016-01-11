@@ -270,7 +270,7 @@ void NativeLearner::acceptGradients(float *gradients, size_t numMB) {
 	pimpl_->learner_updweights(pimpl_->learner_data, gradients, numMB);
 }
 
-float NativeLearner::testOneEpochSC(float *weights, size_t numTesters) {
+float NativeLearner::testOneEpochSC(float *weights, size_t numTesters, size_t myIndex) {
 	/*
 	 char agentName[21];
 	 sprintf(agentName, "TestClient %6ld", pid);

@@ -12,11 +12,11 @@ public class HardBufferedLearner(maxMB:UInt, noTest:Boolean,
                                  weightsFile:String) extends Learner {
 
     public def this(confName:String, noTest:Boolean, 
-                    weightsFile:String, mbPerEpoch:UInt, profiling:Boolean, 
+                    weightsFile:String, mbPerEpoch:UInt, 
                     team:Team, logger:Logger, lt:Int, solverType:String,
                     nLearner:NativeLearner, 
                     maxMB:UInt) {
-        super(confName, mbPerEpoch, 0un, profiling, nLearner, team, logger, lt, solverType);
+        super(confName, mbPerEpoch, 0un, nLearner, team, logger, lt, solverType);
         property(maxMB, noTest, weightsFile);
     }
     val trainTimer = new Timer("Training Time:");

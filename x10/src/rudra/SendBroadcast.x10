@@ -44,9 +44,9 @@ import rudra.util.Unit;
 
   @author vj
  */
-public class SendBroadcast(hardSync:Boolean, confName:String, noTest:Boolean,
+public class SendBroadcast(learnerGroup:PlaceGroup, hardSync:Boolean,
+                           confName:String, noTest:Boolean,
                            jobDir:String, weightsFile:String, meanFile:String, 
-                           profiling:Boolean, 
                            solverType:String, seed:Int, mom:Float, lrmult:Float,
                            adarho:Float, adaepsilon:Float, 
                            spread:UInt, H:Float, S:UInt, 
@@ -56,9 +56,8 @@ public class SendBroadcast(hardSync:Boolean, confName:String, noTest:Boolean,
     class ParameterServer(beatCount:UInt, numXfers:UInt) extends Learner {
         public def this(beatCount:UInt, numXfers:UInt,
                         confName:String, mbPerEpoch:UInt, spread:UInt, seed:Int,
-                        profiling:Boolean, 
                         team:Team, logger:Logger, lt:Int, solverType:String, nLearner:NativeLearner) {
-            super(confName, mbPerEpoch, spread, profiling, nLearner, team, logger, lt, solverType);
+            super(confName, mbPerEpoch, spread, nLearner, team, logger, lt, solverType);
             property(beatCount, numXfers);
         }
 
@@ -223,9 +222,7 @@ public class SendBroadcast(hardSync:Boolean, confName:String, noTest:Boolean,
         } // initialize
     } // ParameterServer
     def run(beatCount:UInt, numXfers:UInt) {
-        val P = Place.numPlaces();
-        val numLearners = P-1;
-        val team = new Team(PlaceGroup.make(P));
+        val team = new Team(learnerGroup);
 
         Learner.initNativeLearnerStatics(confName, jobDir, meanFile, seed, mom,lrmult, 
                                          adarho, adaepsilon, ln);
@@ -242,10 +239,10 @@ public class SendBroadcast(hardSync:Boolean, confName:String, noTest:Boolean,
         val PS__ = new GlobalRef[ParameterServer](
                                       new ParameterServer(beatCount, numXfers,
                                                 confName, mbPerEpoch,
-                                                spread, seed, profiling, team, logger, 
+                                                spread, seed, team, logger, 
                                                 lt, solverType, nl)); 
         logger.emit("SB: The table is set. Training with "
-                    + (P-1) + " learners over "
+                    + learnerGroup.size + " learners over "
                     + numTrainingSamples + " samples, "
                     + numEpochs + " epochs, "
                     + mbPerEpoch + " minibatches per epoch = "
@@ -257,7 +254,7 @@ public class SendBroadcast(hardSync:Boolean, confName:String, noTest:Boolean,
             val root = here;
             async PS__().run();
             logger.info(()=>"SB: Starting place loop");
-            for (p in Place.places()) 
+            for (p in learnerGroup)
                 if (p.id !=0) at(p) async { 
                         Learner.initNativeLearnerStatics(confName, jobDir, meanFile,
                                                          seed, mom,lrmult, 
@@ -271,7 +268,7 @@ public class SendBroadcast(hardSync:Boolean, confName:String, noTest:Boolean,
                         val toLearner = hardSync ? SwapBuffer.make[TimedWeight](false, 
                                           new TimedWeight(networkSize)) // blocking
                             : new XchgBuffer[TimedWeight](new TimedWeight(networkSize)); 
-                        val learner = new Learner(confName, mbPerEpoch, spread, profiling,
+                        val learner = new Learner(confName, mbPerEpoch, spread,
                                                   nLearner, team, logger, lt, solverType);
                         learner.epochStartTime= System.nanoTime();
                         learner.initWeightsIfNeeded(weightsFile);
