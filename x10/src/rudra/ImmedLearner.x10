@@ -1,7 +1,6 @@
 package rudra;
 
 import rudra.util.Logger;
-import rudra.util.Timer;
 import rudra.util.SwapBuffer;
 
 import x10.util.concurrent.AtomicBoolean;

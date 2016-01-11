@@ -72,7 +72,7 @@ install: $(LIB) $(RUDRA_LIB)
 $(LIB):	$(RUDRA_LIB_SRC) copy_headers
 	$(CXX) $(CXXFLAGS) -I$(RUDRA_INCLUDE) $(RUDRA_LIB_SRC) -o $(LIB)
 
-copy_headers:	$(RUDRA_INCLUDE)
+copy_headers:	src/rudra/*.h src/rudra/io/*.h src/rudra/util/*.h
 	mkdir -p $(RUDRA_INCLUDE)/rudra $(RUDRA_INCLUDE)/rudra/io $(RUDRA_INCLUDE)/rudra/util
 	cp src/rudra/*.h $(RUDRA_INCLUDE)/rudra
 	cp src/rudra/io/*.h $(RUDRA_INCLUDE)/rudra/io/

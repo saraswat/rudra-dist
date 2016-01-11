@@ -3,7 +3,6 @@ package rudra;
 import rudra.util.Logger;
 import rudra.util.Timer;
 
-import x10.util.concurrent.AtomicBoolean;
 import x10.util.Team;
 
 /** HardSync implements SGD in parallel by dividing the mini batch evenly across
@@ -22,8 +21,7 @@ public class HardSync(maxMB:UInt, noTest:Boolean, weightsFile:String) extends Le
         property(maxMB, noTest, weightsFile);
     }
     val trainTimer     = new Timer("Training Time:");
-    val reduceTimer = new Timer("Reduce Time:");
-    val bcastTimer = new Timer("BCastTime:");
+    val allreduceTimer = new Timer("Reduce Time:");
     val weightTimer    = new Timer("Weight Update Time:");
     def run() {
         logger.info(()=>"Learner: started.");
@@ -36,21 +34,16 @@ public class HardSync(maxMB:UInt, noTest:Boolean, weightsFile:String) extends Le
         initWeightsIfNeeded(weightsFile); 
         var currentEpoch:UInt = 0un;
         while (totalMBProcessed < maxMB) {
-            computeGradient(compG);         
-            //            team.allreduce(compG.grad, 0, dest.grad, 0, size, Team.ADD);
-                reduceTimer.tic();
-            team.reduce(Place(0), compG.grad, 0, dest.grad, 0, size, Team.ADD);
-                reduceTimer.toc();
-                bcastTimer.tic();
-            team.bcast(Place(0), dest.grad, 0, dest.grad, 0, dest.grad.size);
-                bcastTimer.toc();
+            computeGradient(compG);
+            allreduceTimer.tic();
+            team.allreduce(compG.grad, 0, dest.grad, 0, size, Team.ADD);
+            allreduceTimer.toc();
             compG.setLoadSize(0un);
             timeStamp++;
             dest.timeStamp=timeStamp;
             if (here.id==0) 
                logger.notify(()=>"Reconciler: <- Network "  
-                             + dest + "(" + reduceTimer.lastDurationMillis()+" ms + " 
-                             + bcastTimer.lastDurationMillis() + " ms)");
+                             + dest + "(" + allreduceTimer.lastDurationMillis()+" ms");
             weightTimer.tic();
             acceptNWGradient(dest);
             weightTimer.toc();
@@ -64,8 +57,7 @@ public class HardSync(maxMB:UInt, noTest:Boolean, weightsFile:String) extends Le
         logger.info(()=>"Learner: Exited main loop.");
         if (here.id==0) {
             logger.notify(()=> "" + cgTimer);
-            logger.notify(()=> "" + reduceTimer);
-            logger.notify(()=> "" + bcastTimer);
+            logger.notify(()=> "" + allreduceTimer);
             logger.notify(()=> "" + weightTimer);
         }
     } //run

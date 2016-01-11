@@ -2,7 +2,6 @@ package rudra;
 
 import x10.compiler.Uncounted;
 import x10.util.Team;
-import x10.util.Pair;
 import x10.util.concurrent.AtomicBoolean;
 import x10.util.concurrent.AtomicInteger;
 
@@ -13,7 +12,6 @@ import rudra.util.SwapBuffer;
 import rudra.util.XchgBuffer;
 import rudra.util.BBuffer;
 import rudra.util.Unit;
-import rudra.util.Semaphore;
 import x10.io.Unserializable;
 /*
   The Downpour algorithm -- each learner periodicallys ends its gradients 

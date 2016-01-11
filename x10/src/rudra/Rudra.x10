@@ -9,7 +9,6 @@ import rudra.CodeId;
 import rudra.util.Logger;
 import rudra.util.Timer;
 import rudra.util.SwapBuffer;
-import rudra.util.BBuffer;
 import rudra.util.PhasedT;
 import rudra.util.MergingMonitor;
 import rudra.util.Maybe;
@@ -223,7 +222,6 @@ public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
                        + "typically a checkpoint file"),
                 Option("-a", "allowedSpread", "Allowed spread in a support set (" 
                        + DEFAULT_SPREAD+"un)"),
-                Option("-dl", "debuglevel", "Debugging level (4)"),
                 Option("-seed", "seed", "Seed for the random number generator (time of day)"),
                 Option("-s", "solver", "Solver (" + DEFAULT_SOLVER+")"),
                 Option("-mom", "momentum", "Initial momentum value used in solver=SGD (" 
@@ -247,7 +245,7 @@ public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
                        + " used only with -nwMode " 
                        + DEFAULT_NW_SIZE + "n"),
                 Option("-meanFile", "meanFile", "Path to the mean file, used for"
-                       + " processing image data, e.g. for imagement"),
+                       + " processing image data, e.g. for ImageNet"),
 
                 Option("-beatCount", "beatCount", "In SendBroadcast,"
                        + " num updates after which weights are broadcast" 
@@ -319,7 +317,6 @@ public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
         val H:Float           = cmdLineParams("-updateProb", DEFAULT_UPDATE_PROB);
         val S:UInt            = cmdLineParams("-superSize", DEFAULT_SUPER_SIZE);
 
-        val dl:Int            = cmdLineParams("-dl", 4n); // debugging level TODO: remove
         val ll:Int            = cmdLineParams("-ll", DEFAULT_LOG_LEVEL);
         val lt:Int            = cmdLineParams("-lt", DEFAULT_LOG_LEVEL);
         val lr:Int            = cmdLineParams("-lr", DEFAULT_LOG_LEVEL);
@@ -364,8 +361,8 @@ public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
                         + (noTest?" -noTest":"") 
                         + " -nwSize " + nwSize + " -r " + desiredR
                         + " -beatCount " + beatCount + " -numXfers " + numXfers
-                        + " -updateProb " + H + " -superSize" + S + (CRAB?" -CRAB" : "")
-                        + "\n\t"+ " -dl " +dl 
+                        + " -updateProb " + H + " -superSize " + S + (CRAB?" -CRAB" : "")
+                        + "\n\t" 
                         + " -ll " + Logger.levelString(ll)
                         + " -lt " + Logger.levelString(lt) 
                         + " -lr " + Logger.levelString(lr) 

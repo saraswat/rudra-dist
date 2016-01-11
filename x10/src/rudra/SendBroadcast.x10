@@ -1,6 +1,5 @@
 package rudra;
 
-import x10.compiler.Uncounted;
 import x10.util.Team;
 import x10.util.Random;
 import x10.util.concurrent.AtomicBoolean;

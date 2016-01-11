@@ -3,10 +3,7 @@ package rudra;
 import x10.util.concurrent.AtomicBoolean;
 
 import rudra.util.SwapBuffer;
-import rudra.util.BBuffer;
 import rudra.util.Logger;
-import rudra.util.Monitor;
-import rudra.util.Unit;
 
 class ImmedReconciler(size:Long, maxMB: UInt, learner:ImmedLearner, 
                       reducer:AtLeastRAllReducer, logger:Logger) {

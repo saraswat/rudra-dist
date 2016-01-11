@@ -1,8 +1,5 @@
 package rudra;
 
-import rudra.util.Logger;
-import rudra.util.Timer;
-
 public struct Params(
                 numEpochs:Long,
                 mbPerPlace:Long,
