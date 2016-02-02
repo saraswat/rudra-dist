@@ -61,6 +61,7 @@ public class Tester(testerPlace:Place, confName:String, logger:Logger, solverTyp
             nn.cleanup();
             return res;
         };
+        testWeightsGR.forget();
 
         return result;
     }
