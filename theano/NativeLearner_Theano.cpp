@@ -193,7 +193,7 @@ void NativeLearner::accumulateGradients(float *gradients) {
 	pimpl_->learner_accgrads(pimpl_->learner_data, gradients);
 }
 
-void NativeLearner:::setLearningRateMultiplier(float lrMult) {
+void NativeLearner::setLearningRateMultiplier(float lrMult) {
 	pimpl_->learner_updatelr(pimpl_->learner_data, lrMult);
 }
 

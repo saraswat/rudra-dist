@@ -33,7 +33,7 @@ import x10.io.Unserializable;
         // read in parameters from given cfg file.
         NativeLearner.initFromCFGFile(confName);
     }
-    public static def makeNativeLearner(config:RudraConfig, weightsFile:String, solverType:String):NativeLearner {
+    public static def makeNativeLearner(weightsFile:String, solverType:String):NativeLearner {
         Console.OUT.println(here + " starting on host " + x10.xrx.Runtime.getName());
         val nl = new NativeLearner(here.id);
         nl.initAsLearner(weightsFile, solverType);
