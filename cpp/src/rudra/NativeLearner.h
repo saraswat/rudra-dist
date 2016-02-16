@@ -15,23 +15,17 @@ public:
 	NativeLearner(long id);
 	void cleanup(); // X10 native integration can't call C++ destructors
 
-	long getNumEpochs();
-	long getNumTrainingSamples();
-	long getMBSize();
-
 	// static methods section. These methods are called from static
-	// Learner.initNativeStatics, once in each place.
+	// Learner.initNativeLearnerStatics, once in each place.
 
 	/** Set the working directory, for various files to be written out, e.g. weightsFile.*/
 	static void setLoggingLevel(int level);
-	static void setJobDir(std::string jobDir);
 	static void setMeanFile(std::string _fileName);
 	static void setAdaDeltaParams(float rho, float epsilon, float drho,
 			float depsilon);
 	static void setSeed(long id, int seed, int defaultSeed);
 	static void setMoM(float f);
-	static void setLRMult(float mult);
-	static void setWD();
+	static void setJobID(std::string jobID);
 	static void initFromCFGFile(std::string confName);
 	// end of static methods
 
@@ -62,16 +56,11 @@ public:
 	void accumulateGradients(float *gradients);
 
 	/**
-     * Output the parameters now into a file, if instructed by job configuration.
-	 * Examines the following parameters in MLPparams: _ckptInterval, _numEpochs,
-	 * _jobID. The parameters are printed out if this is the last epoch, or
-	 * if this epoch modulo chkptInterval is 0 (if ckptInterval > 0). The name of the
-	 * file is jobID.final.h5 or jobId.epoch.<whichEpoch>.h5, and it is placed in
-	 * current working dir, which is RUDRA_HOME/LOG/jobID/.
+     * Output the current weights into the specified file.
      *
-	 * @param whichEpoch -- the current epoch
+	 * @param outputFileName name of the file into which to write the weights
 	 */
-	void checkpointIfNeeded(int whichEpoch);
+	void checkpoint(std::string outputFileName);
 
 	/**
 	 * Copy the current set of weights into the array provided.
@@ -85,7 +74,16 @@ public:
 	 */
 	void deserializeWeights(float *weights);
 
-	void updateLearningRate(long curEpochNum);
+	/**
+	 * Set the learning rate multipler used in the learner.  A lrMultipler of
+	 * 1.0 means that the learning rate alpha should be the default alpha
+	 * that was specified.  A lower value for lrMultiplier will reduce the
+	 * learning rate accordingly.
+	 * The schedule for learning rate multipliers is set by Rudra using the
+	 * config file values [learningSchedule, gamma, beta, epochs].
+	 * @param lrMultiplier the learning rate multiplier
+	 */
+	void setLearningRateMultiplier(float lrMultiplier);
 
     /**
      * Update the network weights by applying the update rule with

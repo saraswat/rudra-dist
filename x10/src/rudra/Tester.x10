@@ -5,7 +5,7 @@ import rudra.util.SwapBuffer;
 import rudra.util.Logger;
 import rudra.util.Timer;
 
-public class Tester(testerPlace:Place, confName:String, logger:Logger, solverType:String) {
+public class Tester(config:RudraConfig, testerPlace:Place, confName:String, logger:Logger, solverType:String) {
     static val P = Place.numPlaces();
     var weightsPLH:PlaceLocalHandle[Rail[Float]];
 
@@ -53,17 +53,25 @@ public class Tester(testerPlace:Place, confName:String, logger:Logger, solverTyp
             finish Rail.asyncCopy(testWeightsGR, 0, weights, 0, weights.size);
             val nn = new NativeLearner(here.id);
             nn.initAsTester(here.id, solverType);
-            logger.info(()=>"Tester:Starting testing.");
             val res = nn.testOneEpochSC(weights, 1, 0);
-            logger.info(()=>"Tester:Starting checkpoint if needed.");
-            nn.checkpointIfNeeded(epoch);
-            logger.info(()=>"Tester:Checkpoint finished.");
+            checkpointIfNeeded(epoch, nn);
             nn.cleanup();
             return res;
         };
         testWeightsGR.forget();
 
         return result;
+    }
+
+    public def checkpointIfNeeded(epoch:Int, nn:NativeLearner) {
+        val checkpointInterval = config.checkpointInterval as Int;
+        if ((checkpointInterval > 0 && (epoch % checkpointInterval) == 0n)
+            || epoch == config.numEpochs as Int) {
+            logger.info(()=>"Tester: Starting checkpoint");
+		    val outputFileName = config.jobID + epoch + ".h5";
+            nn.checkpoint(outputFileName);
+            logger.notify(()=>"Tester: Checkpoint complete: " + outputFileName);
+        }
     }
 
 }

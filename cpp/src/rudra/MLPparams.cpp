@@ -54,15 +54,11 @@ namespace rudra {
     float        MLPparams::_adaDeltaEpsilon = 1e-6;
   std::string  MLPparams::_givenFileName   = RUDRA_DEFAULT_STRING;   // -f (FIXME: split into cfg and network files)
   std::string  MLPparams::_restartFileName = RUDRA_DEFAULT_STRING;   // -r
-  std::string  MLPparams::_jobID           = RUDRA_DEFAULT_STRING;   // -j 
   int          MLPparams::_randSeed        = 12345;      			 // -s (to initialize random number generator)
-  int          MLPparams::_sampleClient    = 3;            		     // -sc
   float        MLPparams::_lrMult          = 1.0;                    // -mul
-  std::string  MLPparams::_allowedGPU	   = RUDRA_DEFAULT_STRING;   // -gpu     default if no list given
   std::string  MLPparams::_meanFile		   = RUDRA_DEFAULT_STRING;   // -meanFile
   std::string  MLPparams::_solver		   = RUDRA_DEFAULT_STRING;	 // type of solved: adagrad or sgd
   float		   MLPparams::_mom			   = RUDRA_DEFAULT_INT;	 	 // momentum. overrides values in .cnn
-  int		   MLPparams::_printInterval   = 1;						 // -printInterval : how often to print to the interval
 
   keyMap MLPparams::MLPCfg;		// stores MLP config
 
@@ -266,12 +262,6 @@ void MLPparams::initMLPparams(std::string S) {
 
 }
 
-void MLPparams::setJobID(std::string s){
-	
-	MLPparams::_jobID = s;
-
-}
-
 void MLPparams::setChkptInterval(int i){
 	if (i < 0 || i > MLPparams::_numEpochs){
 	
@@ -283,14 +273,14 @@ void MLPparams::setChkptInterval(int i){
 
 	}		
 }
-void MLPparams::setWD() {
+void MLPparams::setWorkingDirectory(std::string jobID) {
 
         struct stat st;
         uint16 cnt = 0;
         std::string dirName, fileName;
         int retval;
 
-        dirName = MLPparams::_rudraHome + "LOG/" + MLPparams::_jobID + "/";
+        dirName = MLPparams::_rudraHome + "LOG/" + jobID + "/";
 
         stat(dirName.c_str(),&st);
         if (stat(dirName.c_str(), &st) == -1){
@@ -304,7 +294,7 @@ void MLPparams::setWD() {
 	}
         
 	MLPparams::_logDir = dirName;
-	MLPparams::_resFileName = MLPparams::_logDir + MLPparams::_jobID + ".OUT";
+	MLPparams::_resFileName = MLPparams::_logDir + jobID + ".OUT";
 }
 
 void MLPparams::readBinHeader(std::string fileName, int& r, int& c){

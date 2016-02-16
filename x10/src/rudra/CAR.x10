@@ -25,13 +25,11 @@ import x10.io.Unserializable;
 
     @author vj
  **/
-public class CAR(learnerGroup:PlaceGroup, CRAB:Boolean,
+public class CAR(config:RudraConfig, learnerGroup:PlaceGroup, CRAB:Boolean,
                  confName:String, noTest:Boolean,
-                 jobDir:String, weightsFile:String, meanFile:String, 
-                 solverType:String, seed:Int, mom:Float, lrmult:Float,
-
+                 weightsFile:String, meanFile:String, 
+                 solverType:String, seed:Int, mom:Float,
                  adarho:Float, adaepsilon:Float,
-
                  spread:UInt, H:Float, S:UInt, 
                  ll:Int, lr:Int, lt:Int, ln:Int)   {
     val logger = new Logger(lr);
@@ -99,21 +97,19 @@ public class CAR(learnerGroup:PlaceGroup, CRAB:Boolean,
         finish for (p in learnerGroup) at(p) async { // this is meant to leak in!!
                 logger.info(()=>"CAR: In main async.");
             val done = new AtomicBoolean(false);
-            Learner.initNativeLearnerStatics(confName, jobDir, meanFile, seed, mom,lrmult, 
+            Learner.initNativeLearnerStatics(config, confName, meanFile, seed, mom, 
                                              adarho, adaepsilon, ln);
             logger.info(()=>"CAR: Initialized native learner statics.");
             val nl = Learner.makeNativeLearner(weightsFile, solverType);
             logger.info(()=>"CAR: Made nl, native learner.");
             val networkSize = nl.getNetworkSize();
             val size = networkSize+1;
-            val numEpochs = nl.getNumEpochs() as UInt;
-            val mbSize = nl.getMBSize() as UInt;
-            val numTrainingSamples = nl.getNumTrainingSamples() as UInt;
-            // rounded up to nearest unit, so more MB may be generated than needed.
-            val mbPerEpoch = ((nl.getNumTrainingSamples() + mbSize - 1) / mbSize) as UInt; 
-            val maxMB = (numEpochs * mbPerEpoch) as UInt;
-            //            val nLearner= Learner.makeNativeLearner(weightsFile, solverType);
-            val learner=new Learner(confName, mbPerEpoch, spread, 
+            val numEpochs = config.numEpochs;
+            val numTrainSamples = config.numTrainSamples;
+            val mbPerEpoch = config.mbPerEpoch();
+            val maxMB = config.maxMB();
+
+            val learner = new Learner(config, confName, spread,
                                          nl, team, new Logger(ll), lt, solverType);
             logger.info(()=>"CAR: Made learner, native learner.");
             val nlReconciler= Learner.makeNativeLearner(weightsFile, solverType);
@@ -131,7 +127,7 @@ public class CAR(learnerGroup:PlaceGroup, CRAB:Boolean,
            if (here.id == 0) 
                logger.emit("CAR: The table is set. Training with "
                            + learnerGroup.size + " learners over "
-                           + numTrainingSamples + " samples, "
+                           + numTrainSamples + " samples, "
                            + numEpochs + " epochs, "
                            + mbPerEpoch + " minibatches per epoch = "
                            + maxMB + " minibatches.");
@@ -207,7 +203,7 @@ public class CAR(learnerGroup:PlaceGroup, CRAB:Boolean,
                 val grad  = new TimedGradient(size); // gradient for accumulation
                 var myTimeStamp:UInt = 0un; // time measured in terms of MB processed
                 var currentEpoch:UInt = 0un;
-                val threshold:UInt = S/(mbSize*2un);
+                val threshold:UInt = S / (config.mbSize*2un);
                 val bcastTimer = new Timer("bcast Time:");
                 val updateTimer = new Timer("update Time:");
                 var index:Int=0n;
@@ -217,7 +213,7 @@ public class CAR(learnerGroup:PlaceGroup, CRAB:Boolean,
                         dest = toUpdater.get(dest);  // blocking ...need to unblock on termination.
                         val dest_=dest;
                         if (here.id==0)
-                        logger.notify(()=>"CAR.Receiver: Received " + dest_ 
+                        logger.info(()=>"CAR.Receiver: Received " + dest_ 
                                       + "locally (phi=" + phi + ",index=" + index_ + ")");
                     } else {
                         dest.timeStamp = phi;
@@ -258,7 +254,9 @@ public class CAR(learnerGroup:PlaceGroup, CRAB:Boolean,
 
                     // follow learning rate schedule given in config file
                     if ((myTimeStamp / mbPerEpoch) > currentEpoch) {
-                        state.reconcilerNL.updateLearningRate(++currentEpoch);
+                        val newLearningRate = config.lrMult(++currentEpoch);
+                        logger.notify(()=> "CAR.Receiver: updating learning rate to "+ newLearningRate);
+                        state.reconcilerNL.setLearningRateMultiplier(newLearningRate);
                     }
                 } // while
                 val phi = myTimeStamp, index_=index;
@@ -269,7 +267,7 @@ public class CAR(learnerGroup:PlaceGroup, CRAB:Boolean,
             logger.info(()=>"CAR.Learner: started. mbPerEpoch=" + mbPerEpoch);
             var compG:TimedGradient = new TimedGradient(size); 
             compG.timeStamp = UInt.MAX_VALUE;
-            val testManager = here.id==0? learner.new TestManager(noTest, solverType) : null;
+            val testManager = here.id==0? learner.new TestManager(config, noTest, solverType) : null;
             if (testManager != null) testManager.initialize();
             val currentWeight = new TimedWeight(networkSize);
             val trainTimer = new Timer("Training time:");

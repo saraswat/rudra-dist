@@ -10,32 +10,30 @@ import x10.compiler.Pinned;
 import x10.util.Team;
 import x10.io.Unserializable;
 
-@Pinned public class Learner(confName: String, mbPerEpoch:UInt, spread:UInt, 
+@Pinned public class Learner(config:RudraConfig, confName: String, spread:UInt, 
                      nLearner: NativeLearner, 
                      team:Team, logger:Logger, lt:Int,
                      solverType:String) implements Unserializable {
     
-    public static def initNativeLearnerStatics(confName:String, jobDir:String, meanFile:String,
-                   seed:Int, mom:Float, lrmult:Float, 
+    public static def initNativeLearnerStatics(config:RudraConfig, confName:String, meanFile:String,
+                   seed:Int, mom:Float,
                    adaDeltaRho:Float, adaDeltaEpsilon:Float,
                    ln:Int) {
         NativeLearner.setLoggingLevel(ln);
-        if (jobDir != null) NativeLearner.setJobDir(jobDir);
         if (meanFile!=null) NativeLearner.setMeanFile(meanFile);
         NativeLearner.setAdaDeltaParams(adaDeltaRho, adaDeltaEpsilon, 
                                         Rudra.DEFAULT_ADADELTA_RHO, Rudra.DEFAULT_ADADELTA_EPSILON);
         NativeLearner.setSeed(here.id, seed, Rudra.DEFAULT_SEED);
         if (mom != Rudra.DEFAULT_MOM) NativeLearner.setMoM(mom);
-        if (lrmult != Rudra.DEFAULT_LRMULT) NativeLearner.setLRMult(lrmult);
 
         // WD created in common file system, only one place must do it.
-        if (here.id==0) NativeLearner.setWD(); // must come after jobDir is set.
+        if (here.id==0) NativeLearner.setJobID(config.jobID);
 
         // now after the statics are set from command line, 
         // read in parameters from given cfg file.
         NativeLearner.initFromCFGFile(confName);
     }
-    public static def makeNativeLearner(weightsFile:String, solverType:String):NativeLearner {
+    public static def makeNativeLearner(config:RudraConfig, weightsFile:String, solverType:String):NativeLearner {
         Console.OUT.println(here + " starting on host " + x10.xrx.Runtime.getName());
         val nl = new NativeLearner(here.id);
         nl.initAsLearner(weightsFile, solverType);
@@ -52,8 +50,9 @@ import x10.io.Unserializable;
     val P = Place.numPlaces();
     val networkSize = getNetworkSize(nLearner);
     val size = networkSize+1;
-    val numEpochs = nLearner.getNumEpochs() as UInt;
-    val maxMB = (numEpochs * mbPerEpoch) as UInt;
+    val numEpochs = config.numEpochs;
+    val mbPerEpoch = config.mbPerEpoch();
+    val maxMB = config.maxMB();
     val cgTimer = new Timer("Compute gradient time:");
     val weightTimer = new Timer("Weight update Time:");
 
@@ -71,8 +70,6 @@ import x10.io.Unserializable;
         nLearner.deserializeWeights(w);
     }
 
-    public def getMBSize() = nLearner.getMBSize();
-    
     public def trainMiniBatch():Float {
         val result = nLearner.trainMiniBatch();
         return result;
@@ -167,14 +164,14 @@ import x10.io.Unserializable;
      * learner) and sends weights to the Tester, which performs testing at
      * Place(P-1).
      */
-    public class TestManager(noTest:Boolean, solverType:String) {
+    public class TestManager(config:RudraConfig, noTest:Boolean, solverType:String) {
         val toTester = new BlockingRXchgBuffer[TimedWeightWRuntime](new TimedWeightWRuntime(networkSize));
         var weights:TimedWeightWRuntime= new TimedWeightWRuntime(networkSize);
         var lastTested:UInt=0un;
         def initialize() {
             if (noTest) return;
             val testerPlace = Place.places()(Place.numPlaces()-1);
-            async new Tester(testerPlace, confName, new Logger(lt), solverType).run(networkSize, toTester);
+            async new Tester(config, testerPlace, confName, new Logger(lt), solverType).run(networkSize, toTester);
         }
 
         def touch() { touch(null); }
@@ -201,7 +198,7 @@ import x10.io.Unserializable;
             logger.emit(()=>"Learner: Pinging tester with "  + w);
             weights = toTester.put(weights);
             if (weights != w) lastTested=oldEpoch;
-            logger.info(()=>"Learner: Tester "+(weights!=w?"accepted " : "did not accept ")+w);
+            logger.emit(()=>"Learner: Tester "+(weights!=w?"accepted " : "did not accept ")+w);
         }
 
         def finalize() {

@@ -15,9 +15,6 @@ public class NativeLearner {
     @Native("c++", "NativeLearner::setLoggingLevel(#level)")
         public static def setLoggingLevel(level:Int):void {}
 
-    @Native("c++", "NativeLearner::setJobDir(#jobdir->c_str())")
-    public static def setJobDir(jobdir:String):void {}
-
     @Native("c++", "NativeLearner::setAdaDeltaParams(#rho, #epsilon, #defaultRho, #defaultEpsilon)")
         public static def setAdaDeltaParams(rho:Float, epsilon:Float, 
                                             defaultRho:Float, defaultEpsilon:Float):void {}
@@ -31,11 +28,8 @@ public class NativeLearner {
     @Native("c++", "NativeLearner::setMoM(#mom)")
     public static def setMoM(mom:Float):void {}
 
-    @Native("c++", "NativeLearner::setLRMult(#mult)")
-        public static def setLRMult(mult:Float):void {}
-
-    @Native("c++", "NativeLearner::setWD()")
-    public static def setWD():void {}
+    @Native("c++", "NativeLearner::setJobID(#jobID->c_str())")
+    public static def setJobID(jobID:String):void {}
 
     @Native("c++", "NativeLearner::initFromCFGFile(#cfgName->c_str())")
     public static def initFromCFGFile(cfgName:String):void {}
@@ -46,8 +40,8 @@ public class NativeLearner {
     @Native("c++", "#this->initNativeLand(#id, #confName->c_str(), #seed, #defaultSeed, #numLearner)")
         public def initNativeLand(id:Long, confName:String, numLearner:Long):void{}
 
-    @Native("c++", "#this->checkpointIfNeeded(#epoch)")
-    public def checkpointIfNeeded(epoch:Int):void {}
+    @Native("c++", "#this->checkpoint(#outputFileName->c_str())")
+    public def checkpoint(outputFileName:String):void { }
 
     @Native("c++", "#this->getNetworkSize()")
     public def getNetworkSize():Long {
@@ -78,20 +72,11 @@ public class NativeLearner {
     @Native("c++", "#this->deserializeWeights(#weights->raw)")
     public def deserializeWeights(weights:Rail[Float]):void {}
 
-    @Native("c++", "#this->updateLearningRate(#curEpochNum)")
-    public def updateLearningRate(val curEpochNum:Long):void{}
+    @Native("c++", "#this->setLearningRateMultiplier(#lrMult)")
+    public def setLearningRateMultiplier(lrMult:Float):void { }
 
     @Native("c++", "#this->acceptGradients(#delta->raw, #numMB)")
     public def acceptGradients(val delta:Rail[Float], val numMB:Long):void{}
-
-    @Native("c++", "#this->getNumEpochs()")
-    public def getNumEpochs():Long { return -1; }
-
-    @Native("c++", "#this->getNumTrainingSamples()")
-    public def getNumTrainingSamples():Long { return -1; }
-
-    @Native("c++", "#this->getMBSize()")
-    public def getMBSize():Long { return -1; }
             
     @Native("c++", "#this->testOneEpochSC(#weights->raw, #numTesters, #myIndex)")
         public def testOneEpochSC(weights:Rail[Float], numTesters:Long, myIndex:Long):Float {

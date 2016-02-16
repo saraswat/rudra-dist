@@ -10,17 +10,16 @@ import rudra.util.Logger;
 import rudra.util.Timer;
 import rudra.util.SwapBuffer;
 import rudra.util.PhasedT;
-import rudra.util.MergingMonitor;
-import rudra.util.Maybe;
 
 /**
  Top-level class for the X10-based deep learner.
 
  @author vj
  */
-public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
-                   jobDir:String, weightsFile:String, meanFile:String, 
-                   solverType:String, seed:Int, mom:Float, lrmult:Float,
+public class Rudra(config:RudraConfig,
+                   CRAB:Boolean, confName:String, noTest:Boolean,
+                   weightsFile:String, meanFile:String, 
+                   solverType:String, seed:Int, mom:Float,
                    adarho:Float, adaepsilon:Float,
 
                    nwMode:Int, hardSync:Boolean, 
@@ -32,7 +31,6 @@ public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
     public static val DEFAULT_SOLVER="sgd";
     public static val DEFAULT_SEED=12345n;
     public static val DEFAULT_MOM = 0.0f;
-    public static val DEFAULT_LRMULT = 0.1f;
 
     public static val DEFAULT_ADADELTA_RHO = 0.95f;
     public static val DEFAULT_ADADELTA_EPSILON = 1e-6f;
@@ -97,8 +95,8 @@ public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
             }
             val testerPlace = Place.places()(Place.numPlaces()-1);
             at(testerPlace) {
-                Learner.initNativeLearnerStatics(confName, jobDir, meanFile,
-                    seed, mom, lrmult, adarho, adaepsilon, ln);
+                Learner.initNativeLearnerStatics(config, confName, meanFile,
+                    seed, mom, adarho, adaepsilon, ln);
             }
         }
 
@@ -109,9 +107,9 @@ public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
                 throw new Exception("send_broadcast mode requires at least two places!");
             }
             logger.info(()=>"SB: Starting.");
-            new SendBroadcast(learnerGroup, hardSync, confName, noTest, jobDir,
+            new SendBroadcast(config, learnerGroup, hardSync, confName, noTest,
                     weightsFile, meanFile,
-                    solverType, seed, mom, lrmult,
+                    solverType, seed, mom,
                     adarho, adaepsilon,
                     spread, H, S,
                     ll, lt, ln)
@@ -120,9 +118,9 @@ public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
         } 
         if (nwMode == NW_SEND_RECEIVE) {
             logger.info(()=>"SR: Starting.");
-            new SendReceive(learnerGroup, numXfers, noTest, confName, jobDir,
+            new SendReceive(config, learnerGroup, numXfers, noTest, confName,
                     weightsFile, meanFile,
-                    solverType, seed, mom, lrmult,
+                    solverType, seed, mom,
                     adarho, adaepsilon,
                     spread,
                     ll, lt, ln)
@@ -133,9 +131,9 @@ public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
         if ((! hardSync) && (nwMode == NW_APPLY) && desiredR==0n) {
             logger.info(()=>"CAR: Starting.");
         
-            new CAR(learnerGroup, CRAB, confName, noTest, jobDir,
+            new CAR(config, learnerGroup, CRAB, confName, noTest,
                     weightsFile, meanFile,
-                    solverType, seed, mom, lrmult,
+                    solverType, seed, mom,
                     adarho, adaepsilon,
                     spread, H, S, 
                     ll, lr, lt, ln)
@@ -151,43 +149,41 @@ public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
 
         finish for (p in learnerGroup) at(p) async { // this is meant to leak in!!
             val done = new AtomicBoolean(false);
-            Learner.initNativeLearnerStatics(confName, jobDir, meanFile, 
-                                             seed, mom, lrmult, 
+            Learner.initNativeLearnerStatics(config, confName, meanFile, 
+                                             seed, mom,
                                              adarho, adaepsilon,
                                              ln);
-            val nLearner= Learner.makeNativeLearner(weightsFile, solverType);
-            val numEpochs = nLearner.getNumEpochs() as UInt;
-            val mbSize = nLearner.getMBSize() as UInt;
-            val numTrainingSamples = nLearner.getNumTrainingSamples() as UInt;
-            // rounded up to nearest unit
-            val mbPerEpoch = ((nLearner.getNumTrainingSamples() 
-                               + mbSize - 1) / mbSize) as UInt; 
-            val maxMB = (numEpochs * mbPerEpoch) as UInt;
+
+            val mbSize = config.mbSize;
+            val numTrainSamples = config.numTrainSamples;
+            val mbPerEpoch = config.mbPerEpoch();
+            val maxMB = config.maxMB();
+
             if (here == Place.FIRST_PLACE) {
                 logger.emit("Training with "
                     + nLearners + " places over "
-                    + numTrainingSamples + " samples, "
-                    + numEpochs + " epochs, "
+                    + numTrainSamples + " samples, "
+                    + config.numEpochs + " epochs, "
                     + mbPerEpoch + " minibatches per epoch = "
                     + maxMB + " minibatches.");
             }
+
+            val nLearner = Learner.makeNativeLearner(weightsFile, solverType);
             val networkSize = nLearner.getNetworkSize();
             val size = networkSize+1;
             if (hardSync) {
                 if (nwMode != NW_BUFFER) {
                     if (here.id==0) logger.info(()=> "Rudra: Starting HardSync");
-                    new HardSync(confName, noTest, weightsFile, mbPerEpoch, 
-                                 team, new Logger(ll), lt, solverType, nLearner, 
-                                 maxMB).run();
+                    new HardSync(config, confName, noTest, weightsFile, 
+                                 team, new Logger(ll), lt, solverType, nLearner).run();
                 } else {
                     if (here.id==0) logger.info(()=> "Rudra: Starting buffered HardSync");
                     val fromL = SwapBuffer.make[TimedGradient](false, new TimedGradient(size));
                     val toL = SwapBuffer.make[TimedGradient](false, new TimedGradient(size));
-                    val learner = new HardBufferedLearner(confName, noTest, weightsFile, 
-                                                          mbPerEpoch,
+                    val learner = new HardBufferedLearner(config, confName, noTest, weightsFile,
                                                           team, new Logger(ll), lt, solverType,
-                                                          nLearner, maxMB);
-                    val reconciler = new HardBufferedReconciler(size, maxMB, 
+                                                          nLearner);
+                    val reconciler = new HardBufferedReconciler(config, size,
                                                                 new Logger(lr), team);
                     async learner.run(fromL, toL,done);
                     reconciler.run(fromL, toL, done);
@@ -198,10 +194,10 @@ public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
                 throw new Exception("Not implemented yet.");
             } else if (nwMode == NW_IMMEDIATE) { // TODO: Fix the reconciler.
                 val fromLearner = SwapBuffer.make[TimedGradient](true, new TimedGradient(size));
-                val learner=new ImmedLearner(confName, noTest, 
-                                             mbPerEpoch, spread, 
+                val learner = new ImmedLearner(config, confName, noTest, 
+                                             spread,
                                              nLearner, team, new Logger(ll), lt, solverType);
-                val ir=new ImmedReconciler(size, maxMB, learner, atleastR, new Logger(lr));
+                val ir = new ImmedReconciler(config, size, learner, atleastR, new Logger(lr));
                 async learner.run(fromLearner, done);
                 ir.run(fromLearner, done);              
 
@@ -234,8 +230,6 @@ public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
                 Option("-s", "solver", "Solver (" + DEFAULT_SOLVER+")"),
                 Option("-mom", "momentum", "Initial momentum value used in solver=SGD (" 
                        + DEFAULT_MOM + ")"),
-                Option("-mult", "multiplier", "Learning Rate multiplier (" 
-                       + DEFAULT_LRMULT+"f)"),
 
                 Option("-r", "atLeastR", "When hardsync is not set, allReduce only when "
                        + "at least R MBs are available (" + DEFAULT_R + "n)"),
@@ -306,7 +300,6 @@ public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
         val solverType:String = cmdLineParams("-s", DEFAULT_SOLVER).trim();
         val seed:Int          = cmdLineParams("-seed", DEFAULT_SEED);
         val mom:Float         = cmdLineParams("-mom", DEFAULT_MOM);
-        val lrmult:Float      = cmdLineParams("-mult", DEFAULT_LRMULT);
 
         val hardSync:Boolean  = cmdLineParams("-hard");
         var desiredR:Int      = cmdLineParams("-r", DEFAULT_R);
@@ -351,6 +344,9 @@ public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
             }
         }
 
+        val config = RudraConfig.readFromFile(confName);
+        config.jobID = jobDir;
+
         // echo command line parameters
         bootLogger.emit("Running on " + Place.numPlaces() + " places.");
         bootLogger.emit("Running with code |" + CodeId.commitHash+ "|");
@@ -358,7 +354,7 @@ public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
                         + "\n\t -j " + jobDir + " -restart |" + weightsFile  + "|"
                         + " -meanFile |" + meanFile + "|"
                         + "\n\t -s |" + solverType + "| -seed " + seed 
-                        + " -mom " + mom + " -mult " + lrmult
+                        + " -mom " + mom
 
                         + ((adrho != DEFAULT_ADADELTA_RHO) ? " -adrho " + adrho : "")
                         + ((adepsilon != DEFAULT_ADADELTA_RHO) ? " -adepsilon " + adepsilon : "")
@@ -375,12 +371,10 @@ public class Rudra(CRAB:Boolean, confName:String, noTest:Boolean,
                         + " -lr " + Logger.levelString(lr) 
                         + " -lu " + Logger.levelString(lu) 
                         + " -ln " + Logger.levelString(ln));
-        val rudra = new Rudra(CRAB, confName, noTest,
-                              jobDir, weightsFile, meanFile,
-                              solverType, seed, mom, lrmult,
-
+        val rudra = new Rudra(config, CRAB, confName, noTest,
+                              weightsFile, meanFile,
+                              solverType, seed, mom,
                               adrho, adepsilon,
-
                               nwMode, hardSync, 
                               spread, desiredR,
                               beatCount, numXfers, H, S, 

@@ -44,20 +44,21 @@ import rudra.util.Unit;
 
   @author vj
  */
-public class SendBroadcast(learnerGroup:PlaceGroup, hardSync:Boolean,
+public class SendBroadcast(config:RudraConfig,
+                           learnerGroup:PlaceGroup, hardSync:Boolean,
                            confName:String, noTest:Boolean,
-                           jobDir:String, weightsFile:String, meanFile:String, 
-                           solverType:String, seed:Int, mom:Float, lrmult:Float,
+                           weightsFile:String, meanFile:String, 
+                           solverType:String, seed:Int, mom:Float,
                            adarho:Float, adaepsilon:Float, 
                            spread:UInt, H:Float, S:UInt, 
                            ll:Int, lt:Int, ln:Int)  {
     val logger = new Logger(ll);
 
     class ParameterServer(beatCount:UInt, numXfers:UInt) extends Learner {
-        public def this(beatCount:UInt, numXfers:UInt,
-                        confName:String, mbPerEpoch:UInt, spread:UInt, seed:Int,
+        public def this(config:RudraConfig, beatCount:UInt, numXfers:UInt,
+                        confName:String, spread:UInt, seed:Int,
                         team:Team, logger:Logger, lt:Int, solverType:String, nLearner:NativeLearner) {
-            super(confName, mbPerEpoch, spread, nLearner, team, logger, lt, solverType);
+            super(config, confName, spread, nLearner, team, logger, lt, solverType);
             property(beatCount, numXfers);
         }
 
@@ -103,8 +104,7 @@ public class SendBroadcast(learnerGroup:PlaceGroup, hardSync:Boolean,
         } // accept
         def run() {
             logger.info(()=>"PS: Starting initialize");
-            val testManager = noTest ? null : (this as Learner).new TestManager(noTest, solverType);
-            val mbSize = getMBSize() as UInt;
+            val testManager = noTest ? null : (this as Learner).new TestManager(config, noTest, solverType);
             if (testManager!= null) testManager.initialize();
             epochStartTime  = System.nanoTime();
             initWeightsIfNeeded(weightsFile);
@@ -153,7 +153,8 @@ public class SendBroadcast(learnerGroup:PlaceGroup, hardSync:Boolean,
             var weightAge:UInt = 0un;
             var lastWeightSent:UInt = 0un;
             val rand = new Random();
-            val SUnits = S/mbSize, beatCountUnits = beatCount/mbSize;
+            val SUnits = S / config.mbSize;
+            val beatCountUnits = beatCount / config.mbSize;
             var gradient: Rail[Float] = SUnits > 1un? new Rail[Float](size) : null;
             while (totalMBProcessed < maxMB) {
                 logger.info(()=> totalMBProcessed + " ** " + maxMB);
@@ -224,26 +225,25 @@ public class SendBroadcast(learnerGroup:PlaceGroup, hardSync:Boolean,
     def run(beatCount:UInt, numXfers:UInt) {
         val team = new Team(learnerGroup);
 
-        Learner.initNativeLearnerStatics(confName, jobDir, meanFile, seed, mom,lrmult, 
+        Learner.initNativeLearnerStatics(config, confName, meanFile, seed, mom,
                                          adarho, adaepsilon, ln);
         val nl = Learner.makeNativeLearner(weightsFile, solverType);
 
         val networkSize = nl.getNetworkSize();
         val size = networkSize+1;
-        val numEpochs = nl.getNumEpochs() as UInt;
-        val mbSize = nl.getMBSize() as UInt;
-        val numTrainingSamples = nl.getNumTrainingSamples() as UInt;
-        // rounded up to nearest unit, so more MB may be generated than needed.
-        val mbPerEpoch = ((nl.getNumTrainingSamples() + mbSize - 1) / mbSize) as UInt; 
-        val maxMB = (numEpochs * mbPerEpoch) as UInt;
+        val numEpochs = config.numEpochs;
+        val numTrainSamples = config.numTrainSamples;
+        val mbPerEpoch = config.mbPerEpoch();
+        val maxMB = config.maxMB();
+
         val PS__ = new GlobalRef[ParameterServer](
-                                      new ParameterServer(beatCount, numXfers,
-                                                confName, mbPerEpoch,
+                                      new ParameterServer(config, beatCount, numXfers,
+                                                confName,
                                                 spread, seed, team, logger, 
                                                 lt, solverType, nl)); 
         logger.emit("SB: The table is set. Training with "
                     + learnerGroup.size + " learners over "
-                    + numTrainingSamples + " samples, "
+                    + numTrainSamples + " samples, "
                     + numEpochs + " epochs, "
                     + mbPerEpoch + " minibatches per epoch = "
                     + maxMB + " minibatches.");
@@ -256,8 +256,8 @@ public class SendBroadcast(learnerGroup:PlaceGroup, hardSync:Boolean,
             logger.info(()=>"SB: Starting place loop");
             for (p in learnerGroup)
                 if (p.id !=0) at(p) async { 
-                        Learner.initNativeLearnerStatics(confName, jobDir, meanFile,
-                                                         seed, mom,lrmult, 
+                        Learner.initNativeLearnerStatics(config, confName, meanFile,
+                                                         seed, mom, 
                                                          adarho, adaepsilon, ln);
                         logger.info(()=>"SB: Starting main at " + here);
                         val nLearner= Learner.makeNativeLearner(weightsFile, solverType);
@@ -268,7 +268,7 @@ public class SendBroadcast(learnerGroup:PlaceGroup, hardSync:Boolean,
                         val toLearner = hardSync ? SwapBuffer.make[TimedWeight](false, 
                                           new TimedWeight(networkSize)) // blocking
                             : new XchgBuffer[TimedWeight](new TimedWeight(networkSize)); 
-                        val learner = new Learner(confName, mbPerEpoch, spread,
+                        val learner = new Learner(config, confName, spread,
                                                   nLearner, team, logger, lt, solverType);
                         learner.epochStartTime= System.nanoTime();
                         learner.initWeightsIfNeeded(weightsFile);

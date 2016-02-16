@@ -10,10 +10,10 @@ import x10.util.Team;
 
 public class ImmedLearner(noTest:Boolean) extends Learner {
 
-    public def this(confName:String, noTest:Boolean, mbPerEpoch:UInt, spread:UInt, 
+    public def this(config:RudraConfig, confName:String, noTest:Boolean, spread:UInt,
                     nLearner:NativeLearner, 
                     team:Team, logger:Logger, lt:Int, solverType:String) {
-        super(confName, mbPerEpoch, spread, nLearner, team, logger, lt, solverType);
+        super(config, confName, spread, nLearner, team, logger, lt, solverType);
         property(noTest);
     }
 
@@ -51,7 +51,7 @@ public class ImmedLearner(noTest:Boolean) extends Learner {
         logger.info(()=>"Learner: started.");
         var compG:TimedGradient = new TimedGradient(size); 
         compG.timeStamp = UInt.MAX_VALUE;
-        val testManager = here.id==0? (this as Learner).new TestManager(noTest, solverType) : null;
+        val testManager = here.id==0? (this as Learner).new TestManager(config, noTest, solverType) : null;
         if (testManager != null) testManager.initialize();
         val currentWeight = new TimedWeight(networkSize);
         initWeights();

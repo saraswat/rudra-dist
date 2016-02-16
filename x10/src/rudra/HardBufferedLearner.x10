@@ -8,16 +8,15 @@ import x10.util.concurrent.AtomicBoolean;
 import x10.util.Team;
 
 
-public class HardBufferedLearner(maxMB:UInt, noTest:Boolean, 
+public class HardBufferedLearner(noTest:Boolean, 
                                  weightsFile:String) extends Learner {
 
-    public def this(confName:String, noTest:Boolean, 
-                    weightsFile:String, mbPerEpoch:UInt, 
+    public def this(config:RudraConfig, confName:String, noTest:Boolean, 
+                    weightsFile:String, 
                     team:Team, logger:Logger, lt:Int, solverType:String,
-                    nLearner:NativeLearner, 
-                    maxMB:UInt) {
-        super(confName, mbPerEpoch, 0un, nLearner, team, logger, lt, solverType);
-        property(maxMB, noTest, weightsFile);
+                    nLearner:NativeLearner) {
+        super(config, confName, 0un, nLearner, team, logger, lt, solverType);
+        property(noTest, weightsFile);
     }
     val trainTimer = new Timer("Training Time:");
     val weightTimer = new Timer("Weight Update Time:");
@@ -27,7 +26,7 @@ public class HardBufferedLearner(maxMB:UInt, noTest:Boolean,
         logger.info(()=>"Learner: started.");
         var compG:TimedGradient = new TimedGradient(size); 
         compG.timeStamp = UInt.MAX_VALUE;
-        val testManager = here.id==0? (this as Learner).new TestManager(noTest, solverType) : null;
+        val testManager = here.id==0? (this as Learner).new TestManager(config, noTest, solverType) : null;
         if (here.id==0) testManager.initialize();
         epochStartTime= System.nanoTime();
         initWeightsIfNeeded(weightsFile);

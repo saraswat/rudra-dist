@@ -10,30 +10,14 @@
 #include <dlfcn.h>
 #include <iostream>
 
-// vj -- modifying this for integration with Theano. Originally the code supported the Rudra native learner.
-// see NativeLearnerRudra.cpp.aside for the code.
-
-// refactor later
+/**
+ * Learner implementation using Theano
+ */
 namespace rudra {
-
-long NativeLearner::getNumEpochs() {
-	return MLPparams::_numEpochs;
-}
-
-long NativeLearner::getNumTrainingSamples() {
-	return MLPparams::_numTrainSamples;
-}
-
-long NativeLearner::getMBSize() {
-	return MLPparams::_batchSize;
-}
 
 // begin static methods setting fields in MLPparams
 void NativeLearner::setLoggingLevel(int level) {
 	Logger::setLoggingLevel(level);
-}
-void NativeLearner::setJobDir(std::string jobDir) {
-	MLPparams::setJobID(jobDir);
 }
 
 void NativeLearner::setAdaDeltaParams(float rho, float epsilon, float drho,
@@ -66,12 +50,8 @@ void NativeLearner::setMoM(float mom) {
 	MLPparams::_mom = mom;
 }
 
-void NativeLearner::setLRMult(float mult) {
-	MLPparams::_lrMult = mult;
-}
-
-void NativeLearner::setWD() {
-	MLPparams::setWD();
+void NativeLearner::setJobID(std::string jobID) {
+	rudra::MLPparams::setWorkingDirectory(jobID);
 }
 
 void NativeLearner::initFromCFGFile(std::string confName) {
@@ -100,27 +80,12 @@ NativeLearnerImpl::~NativeLearnerImpl() {
 }
 
 // write the output per checkptinterval or at the end of job 
-void NativeLearner::checkpointIfNeeded(int whichEpoch) {
+void NativeLearner::checkpoint(std::string outputFileName) {
 // TODO
 	/*
-	 int chkptInterval = MLPparams::_chkptInterval;
-	 int epochNum = MLPparams::_numEpochs;
-	 std::string jobID = MLPparams::_jobID;
-
-	 if ((chkptInterval != 0 && whichEpoch % chkptInterval == 0) || whichEpoch == epochNum) {
-	 std::string outputFileName = "";
-	 if (whichEpoch == epochNum) {
-	 outputFileName = jobID + ".final" + ".h5";
-	 } else {
-	 std::stringstream ss;
-	 ss << whichEpoch;
-	 outputFileName = jobID + ".epoch." + ss.str() + ".h5";
-	 }
-	 std::cout << "[Tester] Writing weights to " << outputFileName << std::endl;
-	 nn->writeParamsH5(outputFileName);
-	 if (psu->solverType==ADAGRAD)
-	 psu->chkptAdaGrad("ada"+outputFileName);
-	 }
+	pimpl_->nn->writeParamsH5(outputFileName);
+	if (pimpl_->psu->solverType == rudra::ADAGRAD)
+		pimpl_->psu->chkptAdaGrad("ada" + outputFileName);
 	 */
 }
 
@@ -228,19 +193,8 @@ void NativeLearner::accumulateGradients(float *gradients) {
 	pimpl_->learner_accgrads(pimpl_->learner_data, gradients);
 }
 
-/**
- * update learning rate
- */
-void NativeLearner::updateLearningRate(long curEpochNum) {
-// compatible with update learning rate in the new scheme
-	std::cout << "NativeLearner::updateLearningRate pid " << pid << " epoch "
-			<< curEpochNum << " learning rate "
-			<< MLPparams::_lrMult
-					* MLPparams::LearningRateMultiplier::_lr[curEpochNum]
-			<< std::endl;
-	pimpl_->learner_updatelr(pimpl_->learner_data,
-			MLPparams::_lrMult
-					* MLPparams::LearningRateMultiplier::_lr[curEpochNum]);
+void NativeLearner:::setLearningRateMultiplier(float lrMult) {
+	pimpl_->learner_updatelr(pimpl_->learner_data, lrMult);
 }
 
 void NativeLearner::serializeWeights(float *weights) {

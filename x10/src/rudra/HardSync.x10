@@ -11,14 +11,12 @@ import x10.util.Team;
     from weights(t). 
     @author vj
  */
-public class HardSync(maxMB:UInt, noTest:Boolean, weightsFile:String) extends Learner {
-    public def this(confName:String, noTest:Boolean, 
-                    weightsFile: String, mbPerEpoch:UInt, 
+public class HardSync(noTest:Boolean, weightsFile:String) extends Learner {
+    public def this(config:RudraConfig, confName:String, noTest:Boolean, weightsFile: String,
                     team:Team, logger:Logger, lt:Int, solverType:String,
-                    nLearner:NativeLearner, 
-                    maxMB:UInt) {
-        super(confName, mbPerEpoch, 0un, nLearner, team, logger, lt, solverType);
-        property(maxMB, noTest, weightsFile);
+                    nLearner:NativeLearner) {
+        super(config, confName, 0un, nLearner, team, logger, lt, solverType);
+        property(noTest, weightsFile);
     }
     val trainTimer     = new Timer("Training Time:");
     val allreduceTimer = new Timer("Reduce Time:");
@@ -27,7 +25,7 @@ public class HardSync(maxMB:UInt, noTest:Boolean, weightsFile:String) extends Le
         logger.info(()=>"Learner: started.");
         val compG = new TimedGradient(size); 
         compG.timeStamp = UInt.MAX_VALUE;
-        val testManager = here.id==0? (this as Learner).new TestManager(noTest, solverType) : null;
+        val testManager = here.id==0? (this as Learner).new TestManager(config, noTest, solverType) : null;
         if (here.id==0) testManager.initialize();
         val dest = new TimedGradient(size);
         epochStartTime= System.nanoTime();
@@ -49,7 +47,9 @@ public class HardSync(maxMB:UInt, noTest:Boolean, weightsFile:String) extends Le
             weightTimer.toc();
             // follow learning rate schedule given in config file
             if ((totalMBProcessed / mbPerEpoch) > currentEpoch) {
-                nLearner.updateLearningRate(++currentEpoch);
+                val newLearningRate = config.lrMult(++currentEpoch);
+                logger.notify(()=> "Reconciler: updating learning rate to "+ newLearningRate);
+                nLearner.setLearningRateMultiplier(newLearningRate);
             }
             if (testManager != null) testManager.touch();
         } // while !done

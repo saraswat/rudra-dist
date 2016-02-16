@@ -7,27 +7,8 @@ NativeLearner::NativeLearner(long id) : pid(id) {
     std::cout << ">>> NativeLearner::NativeLearner(" << id << ")" << std::endl;
 }
 
-long NativeLearner::getNumEpochs() {
-    std::cout << ">>> NativeLearner::getNumEpochs()" << std::endl;
-    return 1;
-}
-
-long NativeLearner::getNumTrainingSamples() {
-    std::cout << ">>> NativeLearner::getNumTrainingSamples()" << std::endl;
-    return 2;
-}
-
-long NativeLearner::getMBSize() {
-    std::cout << ">>> NativeLearner::getMBSize()" << std::endl;
-    return 1;
-}
-
 void NativeLearner::setLoggingLevel(int level) {
     std::cout << ">>> NativeLearner::setLoggingLevel(" << level << ")" << std::endl;
-}
-
-void NativeLearner::setJobDir(std::string jobDir) {
-    std::cout << ">>> NativeLearner::setJobDir(\"" << jobDir << "\")" << std::endl;
 }
 
 void NativeLearner::setAdaDeltaParams(float rho, float epsilon,
@@ -47,12 +28,8 @@ void NativeLearner::setMoM(float mom) {
     std::cout << ">>> NativeLearner::setMoM(" << mom << ")" << std::endl;
 }
 
-void NativeLearner::setLRMult(float mult) {
-    std::cout << ">>> NativeLearner::setLRMult(" << mult << ")" << std::endl;
-}
-
-void NativeLearner::setWD() {
-    std::cout << ">>> NativeLearner::setWD()" << std::endl;
+void NativeLearner::setWorkingDirectory(std::string jobId) {
+    std::cout << ">>> NativeLearner::setWorkingDirectory(" << jobID << ")" << std::endl;
 }
 
 void NativeLearner::initFromCFGFile(std::string confName) {
@@ -91,8 +68,8 @@ void NativeLearner::accumulateGradients(float *gradients) {
     std::cout << ">>> NativeLearner::accumulateGradients(" << gradients << ")" << std::endl;
 }
 
-void NativeLearner::updateLearningRate(long curEpochNum) {
-    std::cout << ">>> NativeLearner::updateLearningRate(" << curEpochNum << ")" << std::endl;
+void NativeLearner::setLearningRateMultiplier(float lrMult) {
+    std::cout << ">>> NativeLearner::setLearningRateMultiplier(" << lrMult << ")" << std::endl;
 }
 
 void NativeLearner::serializeWeights(float *weights) {

@@ -5,7 +5,7 @@ import x10.util.concurrent.AtomicBoolean;
 import rudra.util.SwapBuffer;
 import rudra.util.Logger;
 
-class ImmedReconciler(size:Long, maxMB: UInt, learner:ImmedLearner, 
+class ImmedReconciler(config:RudraConfig, size:Long, learner:ImmedLearner, 
                       reducer:AtLeastRAllReducer, logger:Logger) {
     var timeStamp:UInt = 0un; // incremented each time an all reduce is done
 
@@ -15,6 +15,12 @@ class ImmedReconciler(size:Long, maxMB: UInt, learner:ImmedLearner,
         var compG:TimedGradient  = new TimedGradient(size); 
         var totalMBReceived:UInt = 0un;
         reducer.initialize(size);
+        val numEpochs = config.numEpochs;
+        val mbSize = config.mbSize;
+        val numTrainSamples = config.numTrainSamples;
+        // rounded up to nearest unit, so more MB may be generated than needed.
+        val mbPerEpoch = ((numTrainSamples + mbSize - 1) / mbSize) as UInt; 
+        val maxMB = numEpochs * mbPerEpoch;
         while (totalMBReceived < maxMB) { 
             compG = fromLearner.get(compG);
             //            reducer.acceptContrib(compG);

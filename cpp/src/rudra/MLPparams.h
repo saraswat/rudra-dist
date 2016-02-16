@@ -62,15 +62,11 @@ public:
         static float          _adaDeltaEpsilon; 
         static std::string    _givenFileName; // -f (FIXME: split into cfg and network files)
         static std::string    _restartFileName;// -r
-        static std::string    _jobID;          // -j
         static int            _randSeed;       // -s (to initialize random number generator)
-        static int            _sampleClient;   // -sc
         static float          _lrMult;         // -mul
         static std::string    _meanFile;       // -meanFile
         static std::string    _solver;         // type of solver adagrad or sgd
         static float          _mom;            // momentum
-        static int            _printInterval;  // how often to print on the console?
-        static std::string    _allowedGPU;     // -gpu 0,1,3
         /*Other paramaters      */
 
         static uint32        _chkptInterval;  // checkpoint interval
@@ -92,9 +88,8 @@ public:
 
         static void             setMLPdefaults();
         static bool     setParam(keyMap inp, std::string param);
-        static void             setWD();
+        static void     setWorkingDirectory(std::string jobID);
         static void     setRudraHome();
-        static void     setJobID(std::string);
         static void     setChkptInterval(int);
         static void     setLearningRateMultiplierSchedule();
 

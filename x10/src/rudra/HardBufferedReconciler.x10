@@ -10,7 +10,7 @@ import rudra.util.Logger;
 import rudra.util.SwapBuffer;
 import rudra.util.Timer;
 
-@Pinned class HardBufferedReconciler(size:Long, maxMB: UInt, logger:Logger, team:Team) 
+@Pinned class HardBufferedReconciler(config:RudraConfig, size:Long, logger:Logger, team:Team) 
     implements Unserializable {
 
     var timeStamp:UInt = 0un; 
@@ -24,6 +24,11 @@ import rudra.util.Timer;
         var dest:TimedGradient  = new TimedGradient(size); 
         var compG:TimedGradient  = new TimedGradient(size); 
         var totalMBReceived:UInt = 0un;
+
+        val numEpochs = config.numEpochs;
+        val numTrainSamples = config.numTrainSamples;
+        val mbPerEpoch = config.mbPerEpoch();
+        val maxMB = config.maxMB();
 
         while (totalMBReceived < maxMB) { 
             compG = fromLearner.get(compG); // blocking
