@@ -64,7 +64,7 @@ endif
 
 
 # All Target
-all: install
+all: copy_headers install
 
 install: $(LIB) $(RUDRA_LIB) copy_headers
 	cp $(LIB) $(RUDRA_LIB)
