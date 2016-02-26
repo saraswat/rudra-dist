@@ -1,25 +1,22 @@
 /*
  * UnifiedBinarySampleSeqReader.cpp
- *
- *  Created on: Jul 14, 2015
- *      Author: weiz
  */
 
 #include "rudra/io/UnifiedBinarySampleSeqReader.h"
 #include <vector>
 
 namespace rudra {
-UnifiedBinarySampleSeqReader::UnifiedBinarySampleSeqReader(std::string sampleFileName,
-					     std::string labelFileName, size_t totalSampleNum) :
-		UnifiedBinarySampleReader(sampleFileName, labelFileName, RudraRand()),
-		totalSampleNum(totalSampleNum),cursor(0) {
+UnifiedBinarySampleSeqReader::UnifiedBinarySampleSeqReader(
+		std::string sampleFileName, std::string labelFileName) :
+		UnifiedBinarySampleReader(sampleFileName, labelFileName, RudraRand()), cursor(
+				0) {
 
 }
 
-UnifiedBinarySampleSeqReader::UnifiedBinarySampleSeqReader(std::string sampleFileName,
-					     std::string labelFileName, size_t totalSampleNum, size_t cursor) :
-		UnifiedBinarySampleReader(sampleFileName, labelFileName, RudraRand()),
-		totalSampleNum(totalSampleNum), cursor(cursor) {
+UnifiedBinarySampleSeqReader::UnifiedBinarySampleSeqReader(
+		std::string sampleFileName, std::string labelFileName, size_t cursor) :
+		UnifiedBinarySampleReader(sampleFileName, labelFileName, RudraRand()), cursor(
+				cursor) {
 
 }
 
@@ -27,18 +24,18 @@ UnifiedBinarySampleSeqReader::~UnifiedBinarySampleSeqReader() {
 }
 
 /**
- * Read a chosen number of samples into buffer X and the corresponding labels
+ * Read a batch of the given size into buffer X and the corresponding labels
  * into buffer Y.
  */
-void UnifiedBinarySampleSeqReader::readLabelledSamples(const size_t numSamples,
+void UnifiedBinarySampleSeqReader::readLabelledSamples(const size_t batchSize,
 		float* X, float* Y) {
 
-    // prepare the indices that we need to retrieve
-	std::vector<size_t> idx(numSamples);
-	for (size_t i = 0; i < numSamples; ++i) {
-	    idx[i] = (cursor++) % totalSampleNum;
+	// prepare the indices that we need to retrieve
+	std::vector<size_t> idx(batchSize);
+	for (size_t i = 0; i < batchSize; ++i) {
+		idx[i] = (cursor++) % numSamples;
 	}
-	retrieveData(numSamples, idx, X, Y);
+	retrieveData(batchSize, idx, X, Y);
 }
 
 } /* namespace rudra */

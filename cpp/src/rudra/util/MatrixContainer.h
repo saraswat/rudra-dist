@@ -352,7 +352,7 @@ void MatrixContainer<T>::writeMat(std::string s) const {
 }
 template<class T>
 void MatrixContainer<T>::writeBinMat (std::string s) const{
-	// binary file format : [uint32][uint32][data	]
+	// binary file format : [uint32_t][uint32_t][data	]
 	//			[rows  ][cols  ][	]	
 	std::ofstream f1(s.c_str(), std::ios::out | std::ios::trunc | std::ios::binary); // open in binary mode, discard e
 	if(!f1){
@@ -360,8 +360,8 @@ void MatrixContainer<T>::writeBinMat (std::string s) const{
 		exit(EXIT_FAILURE);
 	}
 
-	f1.write((char*)&this->dimM,sizeof(uint32));	// write number of rows
-	f1.write((char*)&this->dimN,sizeof(uint32));	// write number of cols
+	f1.write((char*)&this->dimM,sizeof(uint32_t));	// write number of rows
+	f1.write((char*)&this->dimN,sizeof(uint32_t));	// write number of cols
 
 	f1.write((char*)this->buf,sizeof(T)*dimM*dimN); // write the buffer
 
@@ -545,8 +545,8 @@ void MatrixContainer<T>::writeBinMat (std::string s) const{
     }
     int r,c;
 
-    f1.read((char*)&r,sizeof(uint32)); 	// read number of rows
-    f1.read((char*)&c,sizeof(uint32));	// read number of cols
+    f1.read((char*)&r,sizeof(uint32_t)); 	// read number of rows
+    f1.read((char*)&c,sizeof(uint32_t));	// read number of cols
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     // swap byte order
     r = be32toh(r);
@@ -584,7 +584,7 @@ void MatrixContainer<T>::writeBinMat (std::string s) const{
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
       // swap byte order
       for (size_t i=0; i<r*c; i++) {
-        uint32 swapped = be32toh(*reinterpret_cast<uint32 *>(&res.buf[i]));
+        uint32_t swapped = be32toh(*reinterpret_cast<uint32_t *>(&res.buf[i]));
         res.buf[i] = *reinterpret_cast<float *>(&swapped);
       }
       break;
@@ -610,10 +610,10 @@ void MatrixContainer<T>::writeBinMat (std::string s) const{
       exit(EXIT_FAILURE);
     }
 
-    uint32 r,c;
+    uint32_t r,c;
 
-    f1.read((char*)&r,sizeof(uint32)); 	// read number of rows
-    f1.read((char*)&c,sizeof(uint32));	// read number of cols
+    f1.read((char*)&r,sizeof(uint32_t)); 	// read number of rows
+    f1.read((char*)&c,sizeof(uint32_t));	// read number of cols
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     // swap byte order
     r = be32toh(r);
@@ -655,7 +655,7 @@ void MatrixContainer<T>::writeBinMat (std::string s) const{
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
       // swap byte order
       for (size_t i=0; i<stride*len; i++) {
-        uint32 swapped = be32toh(*reinterpret_cast<uint32 *>(&buf[i]));
+        uint32_t swapped = be32toh(*reinterpret_cast<uint32_t *>(&buf[i]));
         buf[i] = *reinterpret_cast<float *>(&swapped);
       }
       break;

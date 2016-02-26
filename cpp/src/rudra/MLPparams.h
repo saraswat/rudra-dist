@@ -34,13 +34,13 @@ public:
 
         /*MLP parameters that are being read from .cfg file*/
         //------------------------------------- 
-        static uint32            _batchSize;// mini-batch size in stochastic gradient descent
-        static uint32            _numTrainSamples;    // number of training samples
-        static uint32            _numInputDim;        // input dimension
-        static uint32            _numClasses;    // number of output classes
-        static uint32            _numTestSamples;    // number of test samples
-        static uint32            _numEpochs;    // total number of training epochs
-        static uint32            _testInterval; // testing interval. set to 0 for no testing
+        static uint32_t            _batchSize;// mini-batch size in stochastic gradient descent
+        static uint32_t            _numTrainSamples;    // number of training samples
+        static uint32_t            _numInputDim;        // input dimension
+        static uint32_t            _numClasses;    // number of output classes
+        static uint32_t            _numTestSamples;    // number of test samples
+        static uint32_t            _numEpochs;    // total number of training epochs
+        static uint32_t            _testInterval; // testing interval. set to 0 for no testing
 
         static std::string      _trainData;    // file name containing the training data
         static std::string      _trainLabels; // file name containing the training labels
@@ -69,14 +69,14 @@ public:
         static float          _mom;            // momentum
         /*Other paramaters      */
 
-        static uint32        _chkptInterval;  // checkpoint interval
+        static uint32_t        _chkptInterval;  // checkpoint interval
         static std::string    _resFileName;   // name of the final result file
     static std::string           _rudraHome;  // directory containing this code.
     static std::string              _logDir;  // working directory
         
         static keyMap                MLPCfg;    // stores MLP config
-        static uint32                _epoch;    // stores the current epoch number
-        static uint32                   _mb;    // stores the current minibatch number
+        static uint32_t                _epoch;    // stores the current epoch number
+        static uint32_t                   _mb;    // stores the current minibatch number
         static bool            _isInference;    // Set to true if the network is being used to perform testing/inference, rather than training. Default value is false
 
         static const std::string paramList[];    // stores the list of MLP parameters
@@ -92,9 +92,6 @@ public:
         static void     setRudraHome();
         static void     setChkptInterval(int);
         static void     setLearningRateMultiplierSchedule();
-
-        static void     readBinHeader(std::string, int& r, int& c);
-
 };
 
 } /* namespace rudra */

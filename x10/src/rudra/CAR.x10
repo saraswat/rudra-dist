@@ -100,7 +100,7 @@ public class CAR(config:RudraConfig, learnerGroup:PlaceGroup, CRAB:Boolean,
             Learner.initNativeLearnerStatics(config, confName, meanFile, seed, mom, 
                                              adarho, adaepsilon, ln);
             logger.info(()=>"CAR: Initialized native learner statics.");
-            val nl = Learner.makeNativeLearner(weightsFile, solverType);
+            val nl = Learner.makeNativeLearner(config, weightsFile, solverType);
             logger.info(()=>"CAR: Made nl, native learner.");
             val networkSize = nl.getNetworkSize();
             val size = networkSize+1;
@@ -112,7 +112,7 @@ public class CAR(config:RudraConfig, learnerGroup:PlaceGroup, CRAB:Boolean,
             val learner = new Learner(config, confName, spread,
                                          nl, team, new Logger(ll), lt, solverType);
             logger.info(()=>"CAR: Made learner, native learner.");
-            val nlReconciler= Learner.makeNativeLearner(weightsFile, solverType);
+            val nlReconciler = Learner.makeNativeLearner(config, weightsFile, solverType);
             val state = new State(nlReconciler, logger);
             val counts = new Counts();
             if (weightsFile == null || weightsFile.equals("")) {

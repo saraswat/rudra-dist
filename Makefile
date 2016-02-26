@@ -14,6 +14,14 @@ rudra-basic:
 	cd cpp && make
 	cd x10 && make X10RTIMPL=${X10RTIMPL} RUDRA_LEARNER=basic
 
+# Rudra with IBM cuDNN learner.
+# See https://github.rtp.raleigh.ibm.com/rudra/rudra-cudnnlearner
+rudra-cudnn:
+	mkdir -p include
+	mkdir -p lib
+	cd cpp && make
+	cd x10 && make X10RTIMPL=${X10RTIMPL} RUDRA_LEARNER=cudnn
+
 rudra-mock:
 	mkdir -p include
 	mkdir -p lib
@@ -27,4 +35,4 @@ clean:
 	cd theano && make clean
 	cd x10 && make clean
 
-.PHONY: all clean rudra-theano rudra-basic rudra-mock
+.PHONY: all clean rudra-theano rudra-cudnn rudra-basic rudra-mock

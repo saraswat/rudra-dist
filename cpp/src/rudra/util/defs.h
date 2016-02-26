@@ -8,7 +8,7 @@
 #ifndef DEFS_H_
 #define DEFS_H_
 
-
+#include <cstddef>
 
 /* misc typedefs */
 
@@ -16,7 +16,7 @@ namespace rudra {
 
 typedef unsigned char uint8;
 typedef unsigned short uint16;
-typedef unsigned int   uint32;
+typedef unsigned int   uint32_t;
 typedef unsigned long long  uint64;
 
 typedef signed short int16;

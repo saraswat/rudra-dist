@@ -1,8 +1,5 @@
 /*
  * UnifiedBinarySampleReader.h
- *
- *  Created on: Jul 13, 2015
- *      Author: weiz
  */
 
 #ifndef UNIFIEDBINARYSAMPLEREADER_H_
@@ -14,7 +11,9 @@
 #include <vector>
 
 namespace rudra {
-enum BinFileType {CHAR, INT, FLOAT, INVALID};
+enum BinFileType {
+	CHAR, INT, FLOAT, INVALID
+};
 class UnifiedBinarySampleReader: public SampleReader {
 public:
 	std::string tdFile; // training data file, GPFS can hold large enough data
@@ -22,13 +21,13 @@ public:
 	BinFileType tdFT; // training data file type, added July 13, 2015
 	BinFileType tlFT; // training label file type, added July 13, 2015
 
-	UnifiedBinarySampleReader(std::string sampleFileName, std::string labelFileName, RudraRand rr);
+	UnifiedBinarySampleReader(std::string sampleFileName,
+			std::string labelFileName, RudraRand rr);
 	~UnifiedBinarySampleReader();
 
 	std::string getFileExt(const std::string& s);
 	BinFileType lookupFileType(const std::string& s);
-	void readLabelledSamples(const size_t numSamples, float* X, float* Y);
-
+	void readLabelledSamples(const size_t batchSize, float* X, float* Y);
 
 protected:
 	void retrieveData(const size_t numSamples, const std::vector<size_t>& idx,
@@ -36,12 +35,9 @@ protected:
 private:
 	RudraRand rr;
 
-	void checkFiles();// to check if files exist
-	void initFileTypes();
+	void checkFiles(); // to check if files exist
 	void initSizePerLabel();
 };
 } /* namespace rudra */
-
-
 
 #endif /* UNIFIEDBINARYSAMPLEREADER_H_ */

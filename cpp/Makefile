@@ -66,10 +66,10 @@ endif
 # All Target
 all: install
 
-install: $(LIB) $(RUDRA_LIB)
+install: $(LIB) $(RUDRA_LIB) copy_headers
 	cp $(LIB) $(RUDRA_LIB)
 
-$(LIB):	$(RUDRA_LIB_SRC) copy_headers
+$(LIB):	$(RUDRA_LIB_SRC)
 	$(CXX) $(CXXFLAGS) -I$(RUDRA_INCLUDE) $(RUDRA_LIB_SRC) -o $(LIB)
 
 copy_headers:	src/rudra/*.h src/rudra/io/*.h src/rudra/util/*.h

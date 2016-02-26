@@ -4,7 +4,6 @@
 #include <rudra/io/GPFSSampleClient.h>
 #include <rudra/io/UnifiedBinarySampleReader.h>
 #include <rudra/io/UnifiedBinarySampleSeqReader.h>
-#include <rudra/util/Logger.h>
 #include <rudra/util/MatrixContainer.h>
 #include <rudra/util/RudraRand.h>
 #include <dlfcn.h>
@@ -17,7 +16,7 @@ namespace rudra {
 
 // begin static methods setting fields in MLPparams
 void NativeLearner::setLoggingLevel(int level) {
-	Logger::setLoggingLevel(level);
+	// TODO
 }
 
 void NativeLearner::setAdaDeltaParams(float rho, float epsilon, float drho,
@@ -35,7 +34,6 @@ void NativeLearner::setMeanFile(std::string fn) {
 
 void NativeLearner::setSeed(long id, int seed, int defaultSeed) {
 	if (seed != defaultSeed) {
-		MLPparams::_randSeed = seed;
 		srand(seed);
 	} else {
 		struct timeval start;
@@ -47,7 +45,7 @@ void NativeLearner::setSeed(long id, int seed, int defaultSeed) {
 }
 
 void NativeLearner::setMoM(float mom) {
-	MLPparams::_mom = mom;
+	// TODO
 }
 
 void NativeLearner::setJobID(std::string jobID) {
@@ -92,17 +90,18 @@ void NativeLearner::checkpoint(std::string outputFileName) {
 /**
  * init as learner agent
  */
-void NativeLearner::initAsLearner(std::string weightsFile,
+void NativeLearner::initAsLearner(std::string trainData,
+		std::string trainLabels, size_t batchSize, std::string weightsFile,
 		std::string solverType) {
 	pimpl_->initNetwork(weightsFile);
 
 	// initialize GPFS Sample client for reading training and test data
 	char agentName[21];
 	sprintf(agentName, "LearnerAgent %6ld", pid);
-	pimpl_->trainSC = new GPFSSampleClient(std::string(agentName), false,
-			new UnifiedBinarySampleReader(MLPparams::_trainData,
-					MLPparams::_trainLabels, RudraRand(pid, pid)));
-
+	pimpl_->trainSC = new GPFSSampleClient(std::string(agentName), batchSize,
+			false,
+			new UnifiedBinarySampleReader(trainData, trainLabels,
+					RudraRand(pid, pid)));
 }
 
 void NativeLearner::initAsTester(long placeID, std::string solverType) {
@@ -175,13 +174,14 @@ int NativeLearner::getNetworkSize() {
 }
 
 float NativeLearner::trainMiniBatch() {
-	MatrixContainer<float> minibatchX(MLPparams::_numInputDim,
-			MLPparams::_batchSize);
-	MatrixContainer<float> minibatchY(MLPparams::_numClasses,
-			MLPparams::_batchSize);
+	MatrixContainer<float> minibatchX(pimpl_->trainSC->getSizePerSample(),
+			pimpl_->trainSC->batchSize);
+	MatrixContainer<float> minibatchY(pimpl_->trainSC->getSizePerLabel(),
+			pimpl_->trainSC->batchSize);
 	float trainMBErr = pimpl_->learner_train(pimpl_->learner_data,
-			MLPparams::_batchSize, minibatchX.buf, MLPparams::_numInputDim,
-			minibatchY.buf, MLPparams::_numClasses);
+			pimpl_->trainSC->batchSize, minibatchX.buf,
+			pimpl_->trainSC->getSizePerSample(), minibatchY.buf,
+			pimpl_->trainSC->getSizePerLabel());
 	return trainMBErr;
 }
 
@@ -225,37 +225,37 @@ void NativeLearner::acceptGradients(float *gradients, size_t numMB) {
 }
 
 float NativeLearner::testOneEpochSC(float *weights, size_t numTesters, size_t myIndex) {
-	/*
-	 char agentName[21];
-	 sprintf(agentName, "TestClient %6ld", pid);
-	 size_t batchSize = std::min(MLPparams::_numTestSamples,
-	 MLPparams::_batchSize);
-	 size_t numMB = std::max((size_t) 1, MLPparams::_numTestSamples / batchSize);
-	 size_t mbPerLearner = std::max((size_t) 1, numMB / numTesters);
-	 size_t startMB = pid * mbPerLearner;
-	 size_t numSamplePerLearner = MLPparams::_numTestSamples / numTesters + 1;
-	 float totalTestErr = 0.0f;
-	 if (startMB < numMB) {
-	 size_t cursor = startMB * MLPparams::_batchSize;
-	 GPFSSampleClient testSC(std::string(agentName), true,
-	 new UnifiedBinarySampleSeqReader(MLPparams::_testData,
-	 MLPparams::_testLabels,
-	 numSamplePerLearner, cursor));
-	 nn->deserialize(weights);
-	 MatrixContainer<float> minibatchX(MLPparams::_batchSize, MLPparams::_numInputDim);
-	 MatrixContainer<float> minibatchY(MLPparams::_batchSize, testSC.getSizePerLabel());
-	 for (size_t i = 0; i < mbPerLearner; i++) {
-	 testSC.getLabelledSamples(minibatchX.buf, minibatchY.buf);
-	 totalTestErr += nn->testNetworkMinibatch(minibatchX, minibatchY);
-	 }
-	 }
-	 float testError = totalTestErr / mbPerLearner;
-	 // cosmetic changes, to return a percentage, instead of a fraction
-	 return testError * 100;
-	 */
-	// TODO: Arnaud. Need to flesh this out for Theano. This code will instantiate the given network
-	// with the given weights, and then run the network on the given tests to report the test score.
-	return 0.0;
+	char agentName[21];
+	sprintf(agentName, "TestClient %6ld", pid);
+	size_t batchSize = std::min(rudra::MLPparams::_numTestSamples,
+			rudra::MLPparams::_batchSize);
+	size_t numMB = std::max((size_t) 1,
+			rudra::MLPparams::_numTestSamples / batchSize);
+	size_t mbPerLearner = std::max((size_t) 1, numMB / numTesters);
+	size_t startMB = myIndex * mbPerLearner;
+	float totalTestErr = 0.0f;
+	if (startMB < numMB) {
+		size_t cursor = startMB * rudra::MLPparams::_batchSize;
+		rudra::GPFSSampleClient testSC(std::string(agentName),
+				MLPparams::_batchSize, true,
+				new rudra::UnifiedBinarySampleSeqReader(
+						rudra::MLPparams::_testData,
+						rudra::MLPparams::_testLabels, cursor));
+		deserializeWeights(weights);
+		MatrixContainer<float> minibatchX(rudra::MLPparams::_batchSize,
+				rudra::MLPparams::_numInputDim);
+		MatrixContainer<float> minibatchY(rudra::MLPparams::_batchSize,
+				testSC.getSizePerLabel());
+		for (size_t i = 0; i < mbPerLearner; i++) {
+			testSC.getLabelledSamples(minibatchX.buf, minibatchY.buf);
+			totalTestErr += pimpl_->learner_test(pimpl_->learner_data,
+					testSC.batchSize, minibatchX.buf, testSC.getSizePerSample(),
+					minibatchY.buf, testSC.getSizePerLabel());
+		}
+	}
+	float testError = totalTestErr / mbPerLearner;
+	// cosmetic changes, to return a percentage, instead of a fraction
+	return testError * 100;
 }
 
 } // namespace rudra

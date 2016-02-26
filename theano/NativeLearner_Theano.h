@@ -2,10 +2,7 @@
 #define __NATIVE_LEARNER_THEANO_H
 
 #include "learner.h"
-#include <cstdlib>
-#include <cstddef>
 #include <string>
-#include <sys/time.h>
 
 namespace rudra {
 

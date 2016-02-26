@@ -14,16 +14,18 @@
 namespace rudra {
 class GPFSSampleClient: public SampleClient {
 public:
-	GPFSSampleClient(std::string name, bool threaded,
+	const size_t batchSize;
+
+	GPFSSampleClient(std::string name, size_t batchSize, bool threaded,
 			SampleReader *sampleReader);
 	//@Override
 	void getLabelledSamples(float* samples, float* labels);
+	size_t getSizePerSample();
 	size_t getSizePerLabel();
 	~GPFSSampleClient();
 protected:
 	void producerThdFunc(void *args);
 private:
-	std::string clientName;
 	bool threaded;
 	SampleReader *sampleReader;
 	float* X; // training data minibatch

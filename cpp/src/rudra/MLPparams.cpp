@@ -19,24 +19,24 @@ namespace rudra {
 
 
   // set defaults
-  uint32      MLPparams::_numTrainSamples = RUDRA_DEFAULT_INT;
-  uint32      MLPparams::_numClasses      = RUDRA_DEFAULT_INT;
-  uint32      MLPparams::_numInputDim     = RUDRA_DEFAULT_INT;
-  uint32      MLPparams::_numTestSamples  = RUDRA_DEFAULT_INT;
-  uint32      MLPparams::_numEpochs       = RUDRA_DEFAULT_INT;
-  uint32      MLPparams::_batchSize       = RUDRA_DEFAULT_INT;
-  uint32      MLPparams::_testInterval    = RUDRA_DEFAULT_INT;
+  uint32_t      MLPparams::_numTrainSamples = RUDRA_DEFAULT_INT;
+  uint32_t      MLPparams::_numClasses      = RUDRA_DEFAULT_INT;
+  uint32_t      MLPparams::_numInputDim     = RUDRA_DEFAULT_INT;
+  uint32_t      MLPparams::_numTestSamples  = RUDRA_DEFAULT_INT;
+  uint32_t      MLPparams::_numEpochs       = RUDRA_DEFAULT_INT;
+  uint32_t      MLPparams::_batchSize       = RUDRA_DEFAULT_INT;
+  uint32_t      MLPparams::_testInterval    = RUDRA_DEFAULT_INT;
   std::string MLPparams::_trainData       = RUDRA_DEFAULT_STRING;
   std::string MLPparams::_trainLabels     = RUDRA_DEFAULT_STRING;
   std::string MLPparams::_testData        = RUDRA_DEFAULT_STRING;
   std::string MLPparams::_testLabels      = RUDRA_DEFAULT_STRING;
   
-  uint32      MLPparams::_chkptInterval   = RUDRA_DEFAULT_INT;
+  uint32_t      MLPparams::_chkptInterval   = RUDRA_DEFAULT_INT;
   std::string MLPparams::_logDir          = RUDRA_DEFAULT_STRING;
   std::string MLPparams::_rudraHome       = RUDRA_DEFAULT_STRING;
   std::string MLPparams::_resFileName     = RUDRA_DEFAULT_STRING;
-  uint32      MLPparams::_epoch           = RUDRA_DEFAULT_INT;
-  uint32      MLPparams::_mb              = RUDRA_DEFAULT_INT;
+  uint32_t      MLPparams::_epoch           = RUDRA_DEFAULT_INT;
+  uint32_t      MLPparams::_mb              = RUDRA_DEFAULT_INT;
 
   // learning rate related parameters
   std::string MLPparams::LearningRateMultiplier::_lrFile = RUDRA_DEFAULT_STRING;
@@ -193,21 +193,21 @@ void MLPparams::initMLPparams(std::string S) {
 	MLPparams::_testLabels 	= MLPparams::MLPCfg["testLabels"];
 	MLPparams::_meanFile 	= MLPparams::MLPCfg["meanFile"];
 
-	MLPparams::_testInterval = convert::string_to_T<uint32>(
+	MLPparams::_testInterval = convert::string_to_T<uint32_t>(
 			MLPparams::MLPCfg["testInterval"]);
-	MLPparams::_chkptInterval = convert::string_to_T<uint32>(
+	MLPparams::_chkptInterval = convert::string_to_T<uint32_t>(
 			MLPparams::MLPCfg["chkptInterval"]);
-	MLPparams::_numTrainSamples = convert::string_to_T<uint32>(
+	MLPparams::_numTrainSamples = convert::string_to_T<uint32_t>(
 			MLPparams::MLPCfg["numTrainSamples"]);
-	MLPparams::_numTestSamples = convert::string_to_T<uint32>(
+	MLPparams::_numTestSamples = convert::string_to_T<uint32_t>(
 			MLPparams::MLPCfg["numTestSamples"]);
-	MLPparams::_numInputDim = convert::string_to_T<uint32>(
+	MLPparams::_numInputDim = convert::string_to_T<uint32_t>(
 			MLPparams::MLPCfg["numInputDim"]);
-	MLPparams::_numClasses = convert::string_to_T<uint32>(
+	MLPparams::_numClasses = convert::string_to_T<uint32_t>(
 			MLPparams::MLPCfg["numClasses"]);
-	MLPparams::_numEpochs = convert::string_to_T<uint32>(
+	MLPparams::_numEpochs = convert::string_to_T<uint32_t>(
 			MLPparams::MLPCfg["numEpochs"]);
-	MLPparams::_batchSize = convert::string_to_T<uint32>(
+	MLPparams::_batchSize = convert::string_to_T<uint32_t>(
 			MLPparams::MLPCfg["batchSize"]);
 
 	MLPparams::LearningRateMultiplier::_schedule = MLPparams::MLPCfg["learningSchedule"];
@@ -295,35 +295,6 @@ void MLPparams::setWorkingDirectory(std::string jobID) {
         
 	MLPparams::_logDir = dirName;
 	MLPparams::_resFileName = MLPparams::_logDir + jobID + ".OUT";
-}
-
-void MLPparams::readBinHeader(std::string fileName, int& r, int& c){
-
-	std::ifstream f1(fileName.c_str(), std::ios::in | std::ios::binary); //open file for reading in binary mode
-	if(!f1){
-		std::cout << "MLPparams::readBinHeader::Error! failed to open file: " << fileName << std::endl;
-		exit(EXIT_FAILURE);
-	}
-
-	int r1,c1;
-
-	f1.read((char*)&r1,sizeof(uint32));	// read number of rows
-	f1.read((char*)&c1,sizeof(uint32));	// read number of cols
-
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-        // swap byte order
-        r1 = be32toh(r1);
-        c1 = be32toh(c1);
-#endif
-
-	if (r1 < 0 || c1 < 0){
-		std::cout << "MLPparams::readBinHeader::Invalid matrix dimensions::" << r1 << " | " << c1 << " in file: " << fileName <<std::endl;
-		exit(EXIT_FAILURE);
-	}
-
-	r = r1;
-	c = c1;
-
 }
 
 } /* namespace rudra */

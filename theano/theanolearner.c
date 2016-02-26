@@ -96,7 +96,7 @@ int learner_init(void **_net, struct param params[],
     PyErr_Print();
     goto error;
   }
-  fprintf(stdout, "Method 'myinit' is  %p  \n", init);
+  //fprintf(stdout, "Method 'myinit' is  %p  \n", init);
     Py_DECREF(mod); mod = NULL;
 
   PyErr_Clear(); // Clear error state before returning to Python

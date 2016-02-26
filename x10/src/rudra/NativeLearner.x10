@@ -49,8 +49,9 @@ public class NativeLearner {
     }
         
 
-    @Native("c++", "#this->initAsLearner(#weightsFile->c_str(), #solverType->c_str())")
-    public def initAsLearner(weightsFile:String, solverType:String):void { }
+    @Native("c++", "#this->initAsLearner(#trainData->c_str(), #trainLabels->c_str(), #batchSize, #weightsFile->c_str(), #solverType->c_str())")
+    public def initAsLearner(trainData:String, trainLabels:String,
+			batchSize:long, weightsFile:String, solverType:String):void { }
 
     @Native("c++", "#this->initAsTester(#placeId, #solverType->c_str())")
     public def initAsTester(placeId:Long, solverType:String):void { }

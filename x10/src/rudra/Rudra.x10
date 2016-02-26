@@ -168,7 +168,7 @@ public class Rudra(config:RudraConfig,
                     + maxMB + " minibatches.");
             }
 
-            val nLearner = Learner.makeNativeLearner(weightsFile, solverType);
+            val nLearner = Learner.makeNativeLearner(config, weightsFile, solverType);
             val networkSize = nLearner.getNetworkSize();
             val size = networkSize+1;
             if (hardSync) {

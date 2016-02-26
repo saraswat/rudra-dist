@@ -40,6 +40,8 @@ public class RudraConfig {
     alpha:Float, momentum:Float,
     learningSchedule:String, gamma:Float, epochs:Rail[Long]) {
 */
+    var trainData:String;
+    var trainLabels:String;
     var numTrainSamples:UInt;
     var numEpochs:UInt;
     var mbSize:UInt;
@@ -86,7 +88,11 @@ public class RudraConfig {
             while (true) {
                 if (!line.startsWith("#")) {
                     Console.OUT.println(line);
-                    if (line.startsWith("numTrainSamples")) {
+                    if (line.startsWith("trainData")) {
+                        config.trainData = readConfig(line);
+                    } else if (line.startsWith("trainLabels")) {
+                        config.trainLabels = readConfig(line);
+                    } else if (line.startsWith("numTrainSamples")) {
                         config.numTrainSamples = readUInt(line);
                     } else if (line.startsWith("numEpochs")) {
                         config.numEpochs = readUInt(line);

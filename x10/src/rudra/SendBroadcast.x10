@@ -227,7 +227,7 @@ public class SendBroadcast(config:RudraConfig,
 
         Learner.initNativeLearnerStatics(config, confName, meanFile, seed, mom,
                                          adarho, adaepsilon, ln);
-        val nl = Learner.makeNativeLearner(weightsFile, solverType);
+        val nl = Learner.makeNativeLearner(config, weightsFile, solverType);
 
         val networkSize = nl.getNetworkSize();
         val size = networkSize+1;
@@ -260,7 +260,7 @@ public class SendBroadcast(config:RudraConfig,
                                                          seed, mom, 
                                                          adarho, adaepsilon, ln);
                         logger.info(()=>"SB: Starting main at " + here);
-                        val nLearner= Learner.makeNativeLearner(weightsFile, solverType);
+                        val nLearner = Learner.makeNativeLearner(config, weightsFile, solverType);
                         val done = new AtomicBoolean(false);
                         val fromLearner = SwapBuffer.make[GlobalTimedGradient](false, 
                                              new GlobalTimedGradient(size)); // blocking

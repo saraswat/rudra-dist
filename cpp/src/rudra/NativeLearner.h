@@ -4,7 +4,6 @@
 #include <cstdlib>
 #include <cstddef>
 #include <string>
-#include <sys/time.h>
 
 namespace rudra {
 class NativeLearnerImpl;
@@ -29,7 +28,8 @@ public:
 	static void initFromCFGFile(std::string confName);
 	// end of static methods
 
-	void initAsLearner(std::string weightsFile, std::string solverType);
+	void initAsLearner(std::string trainData, std::string trainLabels,
+			size_t batchSize, std::string weightsFile, std::string solverType);
 	void initAsTester(long placeID, std::string solverType);
 
 	int getNetworkSize();

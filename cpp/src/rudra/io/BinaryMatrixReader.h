@@ -11,7 +11,7 @@
 namespace rudra {
 
 /** Size of a binary matrix file header. */
-const size_t HEADER_SIZE = 2 * sizeof(uint32);
+const size_t HEADER_SIZE = 2 * sizeof(uint32_t);
 
 template<class T>
 MatrixContainer<T> readBinMat(std::string s) {
@@ -22,9 +22,9 @@ MatrixContainer<T> readBinMat(std::string s) {
 		exit(EXIT_FAILURE);
 	}
 
-	uint32 rows, cols;
-	f1.read((char*) &rows, sizeof(uint32));
-	f1.read((char*) &cols, sizeof(uint32));
+	uint32_t rows, cols;
+	f1.read((char*) &rows, sizeof(uint32_t));
+	f1.read((char*) &cols, sizeof(uint32_t));
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 	// swap byte order
 	rows = be32toh(rows);
@@ -63,7 +63,8 @@ MatrixContainer<T> readBinMat(std::string s) {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 		// swap byte order
 		for (size_t i = 0; i < rows * cols; i++) {
-			uint32 swapped = be32toh(*reinterpret_cast<uint32 *>(&res.buf[i]));
+			uint32_t swapped = be32toh(
+					*reinterpret_cast<uint32_t *>(&res.buf[i]));
 			res.buf[i] = *reinterpret_cast<float *>(&swapped);
 		}
 		break;
@@ -110,7 +111,7 @@ inline void readRecordFromBinMat(T* buf, const size_t idx,
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 		// swap byte order
 		for (size_t i = 0; i < recordSize; i++) {
-			uint32 swapped = be32toh(*reinterpret_cast<uint32 *>(&buf[i]));
+			uint32_t swapped = be32toh(*reinterpret_cast<uint32_t *>(&buf[i]));
 			buf[i] = *reinterpret_cast<float *>(&swapped);
 		}
 		break;
