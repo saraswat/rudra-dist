@@ -178,6 +178,7 @@ float NativeLearner::trainMiniBatch() {
 			pimpl_->trainSC->batchSize);
 	MatrixContainer<float> minibatchY(pimpl_->trainSC->getSizePerLabel(),
 			pimpl_->trainSC->batchSize);
+    pimpl_->trainSC->getLabelledSamples(minibatchX.buf, minibatchY.buf);
 	float trainMBErr = pimpl_->learner_train(pimpl_->learner_data,
 			pimpl_->trainSC->batchSize, minibatchX.buf,
 			pimpl_->trainSC->getSizePerSample(), minibatchY.buf,
