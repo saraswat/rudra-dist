@@ -2,6 +2,8 @@ import numpy
 
 import time
 import theano
+from theano.ifelse import ifelse
+from theano import printing
 import theano.tensor as T
 
 n_in = 784  # 28 * 28
@@ -74,7 +76,8 @@ class Model(object):
                        for param, grad in zip(self.params, self.grads)]
         self.pup = theano.function([], [], updates=param_updates)
 
-        self.test = theano.function([self.x, self.y], cost)
+        error = T.mean(T.neq(pred, self.y.argmax(axis=1)) * 1.0)
+        self.test = theano.function([self.x, self.y], error)
 
     def size(self):
         #return self.W1.size + self.W2.size + self.b1.size + self.b2.size
@@ -107,7 +110,7 @@ class Model(object):
         self.lr.set_value(newLR)
 
     def get_params(self, buf):
-        print(self)
+        #print(self)
         s = 0
         tot_size = 0
         for p in self.params:
@@ -124,7 +127,7 @@ class Model(object):
 #        print 'buf[0:5]: ', buf[0:5]
 
     def set_params(self, buf):
-        print(self)
+        #print(self)
         s = 0
         new_params = []
         for p in self.params:
