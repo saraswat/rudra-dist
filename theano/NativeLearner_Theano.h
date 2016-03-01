@@ -24,7 +24,7 @@ public:
 	learner_test_t *learner_test;
 	learner_getgrads_t *learner_getgrads;
 	learner_accgrads_t *learner_accgrads;
-	learner_updatelr_t *learner_updatelr;
+	learner_setlrmult_t *learner_setlrmult;
 	learner_getweights_t *learner_getweights;
 	learner_setweights_t *learner_setweights;
 	learner_updweights_t *learner_updweights;

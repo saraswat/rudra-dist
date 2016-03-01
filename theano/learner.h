@@ -55,9 +55,9 @@ learner_getgrads_t learner_getgrads;
 typedef void learner_accgrads_t(void *data, float *updates);
 learner_accgrads_t learner_accgrads;
 
-/* Set the internal learning rate to the provided value */
-typedef void learner_updatelr_t(void *data, float newLR);
-learner_updatelr_t learner_updatelr;
+/* Multiply the initial learning rate by the provided value */
+typedef void learner_setlrmult_t(void *data, float lrMult);
+learner_setlrmult_t learner_setlrmult;
 
 /* Serialize the internal weights into the provided buffer */
 typedef void learner_getweights_t(void *data, float *weights);

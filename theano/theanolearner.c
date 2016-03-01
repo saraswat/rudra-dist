@@ -120,7 +120,7 @@ int learner_init(void **_net, struct param params[],
   CHECK_METHOD("test");
   CHECK_METHOD("get_grads");
   CHECK_METHOD("acc_grads");
-  CHECK_METHOD("upd_lr");
+  CHECK_METHOD("set_lr_mult");
   CHECK_METHOD("set_params");
   CHECK_METHOD("get_params");
   CHECK_METHOD("upd_grads");
@@ -312,10 +312,10 @@ void learner_accgrads(void *net, float *updates) {
   _learner_call1(net, "acc_grads", updates);
 }
 
-void learner_updatelr(void *net, float newLR) {
-    fprintf(stdout, "learner_updatelr: %.3f\n", newLR);
+void learner_setlrmult(void *net, float lrMult) {
+    fprintf(stdout, "learner_setlrmult: %.3f\n", lrMult);
   PyObject *res;
-  res = PyObject_CallMethod((PyObject *)net, "upd_lr", "f", newLR);
+  res = PyObject_CallMethod((PyObject *)net, "set_lr_mult", "f", lrMult);
   if (res == NULL) {
     PyErr_PrintEx(1);
     // TODO: indicate error

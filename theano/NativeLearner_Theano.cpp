@@ -139,7 +139,7 @@ int NativeLearnerImpl::initNetwork(std::string weightsFile) {
 	LOAD_SYM(learner_test);
 	LOAD_SYM(learner_getgrads);
 	LOAD_SYM(learner_accgrads);
-	LOAD_SYM(learner_updatelr);
+	LOAD_SYM(learner_setlrmult);
 	LOAD_SYM(learner_getweights);
 	LOAD_SYM(learner_setweights);
 	LOAD_SYM(learner_updweights);
@@ -195,7 +195,7 @@ void NativeLearner::accumulateGradients(float *gradients) {
 }
 
 void NativeLearner::setLearningRateMultiplier(float lrMult) {
-	pimpl_->learner_updatelr(pimpl_->learner_data, lrMult);
+	pimpl_->learner_setlrmult(pimpl_->learner_data, lrMult);
 }
 
 void NativeLearner::serializeWeights(float *weights) {

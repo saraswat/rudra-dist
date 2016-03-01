@@ -9,6 +9,7 @@ import theano.tensor as T
 n_in = 784  # 28 * 28
 n_hidden = 500
 n_out = 10
+lr_init = 0.1
 
 def as_f32(v):
     return numpy.asarray(v).astype('float32')
@@ -35,7 +36,7 @@ class Model(object):
                                 name='W2', borrow=True)
         self.b2 = theano.shared(value=numpy.zeros((n_out,), dtype='float32'),
                                 name='b2', borrow=True)
-        self.lr = theano.shared(value=numpy.asarray(0.1, dtype='float32'),
+        self.lr = theano.shared(value=numpy.asarray(lr_init, dtype='float32'),
                                 name='lr', borrow=True)
 
         self.params = (self.W1, self.b1, self.W2, self.b2)
@@ -93,21 +94,17 @@ class Model(object):
         return p+l
 
     def get_grads(self, buf):
-
         s = 0
         for g in self.grads:
             s = self.updbuf(buf, g.get_value(borrow=True), s)
-        #import pdb; pdb.set_trace()
-#        print buf[0:5]
-#        print buf.sum()
 
     def acc_grads(self, buf):
         s = 0
         for g in self.grads:
             s = self.updbuf(buf, g.get_value(borrow=True), s, acc=True)
 
-    def upd_lr(self, newLR):
-        self.lr.set_value(newLR)
+    def set_lr_mult(self, lrMult):
+        self.lr.set_value(float(lr_init * lrMult), allow_input_downcast=True)
 
     def get_params(self, buf):
         #print(self)
@@ -134,12 +131,13 @@ class Model(object):
             p_val = p.get_value(borrow=True)
             t = s + p_val.size
             new_p = numpy.reshape(buf[s:t], p_val.shape)
-            new_params.append(new_p)
+            p.set_value(new_p)
+            #new_params.append(new_p)
             s = t
 
-        upp = [(o_p, n_p) for o_p, n_p in zip(self.params, new_params)]
-        f_update_params = theano.function([], [], updates=upp)
-        f_update_params()
+        #upp = [(o_p, n_p) for o_p, n_p in zip(self.params, new_params)]
+        #f_update_params = theano.function([], [], updates=upp)
+        #f_update_params()
         """
         s = 0
         for p in self.params:
@@ -153,11 +151,12 @@ class Model(object):
     # This doesn't have adagrad yet, it's just to make sure the rest works.
     # This should be update gradients NOT update parameters ** upd_grads **
     def upd_grads(self, buf, numMB):
+        mult = 1.0 / numMB
         s = 0
         for g in self.grads:
             g_val = g.get_value(borrow=True)
             t = s + g_val.size
-            new_g = numpy.reshape(buf[s:t], g_val.shape)
+            new_g = numpy.reshape(buf[s:t], g_val.shape) * mult
             g.set_value(new_g)  # Can we use borrow=True? I don't think so, but I'm not 100% sure.
 #            new_grads.append(new_g)
             s = t
