@@ -77,7 +77,8 @@ class Model(object):
                        for param, grad in zip(self.params, self.grads)]
         self.pup = theano.function([], [], updates=param_updates)
 
-        error = T.mean(T.neq(pred, self.y.argmax(axis=1)) * 1.0)
+        # note: test labels are simple ints, not one-hot encoded
+        error = T.mean(T.neq(pred, self.y.T.astype('int32')) * 1.0)
         self.test = theano.function([self.x, self.y], error)
 
     def size(self):
@@ -104,7 +105,7 @@ class Model(object):
             s = self.updbuf(buf, g.get_value(borrow=True), s, acc=True)
 
     def set_lr_mult(self, lrMult):
-        self.lr.set_value(float(lr_init * lrMult), allow_input_downcast=True)
+        self.lr.set_value(float(lr_init * lrMult))
 
     def get_params(self, buf):
         #print(self)
