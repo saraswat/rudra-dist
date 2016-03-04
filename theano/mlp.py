@@ -78,7 +78,7 @@ class Model(object):
         self.pup = theano.function([], [], updates=param_updates)
 
         # note: test labels are simple ints, not one-hot encoded
-        error = T.mean(T.neq(pred, self.y.T.astype('int32')) * 1.0)
+        error = T.mean(T.neq(pred, self.y.T.astype('int32')))
         self.test = theano.function([self.x, self.y], error)
 
     def size(self):
