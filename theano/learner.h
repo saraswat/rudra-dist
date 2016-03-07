@@ -68,7 +68,7 @@ typedef void learner_setweights_t(void *data, float *weights);
 learner_setweights_t learner_setweights;
 
 /* Update the internal weights with the provided gradient */
-typedef void learner_updweights_t(void *data, float *grads, size_t numMB);
+typedef void learner_updweights_t(void *data, float *grads, const float multiplier);
 learner_updweights_t learner_updweights;
 
 #ifdef __cplusplus

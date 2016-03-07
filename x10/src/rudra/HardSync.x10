@@ -11,12 +11,12 @@ import x10.util.Team;
     from weights(t). 
     @author vj
  */
-public class HardSync(noTest:Boolean, weightsFile:String) extends Learner {
+public class HardSync(noTest:Boolean, weightsFile:String, lr:Int) extends Learner {
     public def this(config:RudraConfig, confName:String, noTest:Boolean, weightsFile: String,
-                    team:Team, logger:Logger, lt:Int, solverType:String,
+                    team:Team, logger:Logger, lr:Int, lt:Int, solverType:String,
                     nLearner:NativeLearner) {
         super(config, confName, 0un, nLearner, team, logger, lt, solverType);
-        property(noTest, weightsFile);
+        property(noTest, weightsFile, lr);
     }
     val trainTimer     = new Timer("Training Time:");
     val allreduceTimer = new Timer("Reduce Time:");
@@ -30,6 +30,7 @@ public class HardSync(noTest:Boolean, weightsFile:String) extends Learner {
         val dest = new TimedGradient(size);
         epochStartTime= System.nanoTime();
         initWeightsIfNeeded(weightsFile); 
+        val loggerRec = new Logger(lr);
         var currentEpoch:UInt = 0un;
         while (totalMBProcessed < maxMB) {
             computeGradient(compG);
@@ -40,7 +41,7 @@ public class HardSync(noTest:Boolean, weightsFile:String) extends Learner {
             timeStamp++;
             dest.timeStamp=timeStamp;
             if (here.id==0) 
-               logger.notify(()=>"Reconciler: <- Network "  
+               loggerRec.notify(()=>"Reconciler: <- Network "  
                              + dest + "(" + allreduceTimer.lastDurationMillis()+" ms)");
             weightTimer.tic();
             acceptNWGradient(dest);
@@ -48,7 +49,7 @@ public class HardSync(noTest:Boolean, weightsFile:String) extends Learner {
             // follow learning rate schedule given in config file
             if ((totalMBProcessed / mbPerEpoch) > currentEpoch) {
                 val newLearningRate = config.lrMult(++currentEpoch);
-                logger.notify(()=> "Reconciler: updating learning rate to "+ newLearningRate);
+                loggerRec.notify(()=> "Reconciler: updating learning rate to "+ newLearningRate);
                 nLearner.setLearningRateMultiplier(newLearningRate);
             }
             if (testManager != null) testManager.touch();

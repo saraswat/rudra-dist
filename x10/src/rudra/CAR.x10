@@ -43,7 +43,8 @@ public class CAR(config:RudraConfig, learnerGroup:PlaceGroup, CRAB:Boolean,
             updateTimer.tic();
             monitor.atomicBlock(()=> {
                     timeStamp=rg.timeStamp;
-                    reconcilerNL.acceptGradients(rg.grad, rg.loadSize());
+                    val multiplier = 1.0f / rg.loadSize();
+                    reconcilerNL.acceptGradients(rg.grad, multiplier);
                     sizeMB += rg.loadSize();
                     Unit()
                 });

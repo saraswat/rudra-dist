@@ -332,7 +332,7 @@ void learner_setweights(void *net, float *weights) {
   _learner_call1(net, "set_params", weights);
 }
 
-void learner_updweights(void *net, float *grads, size_t numMB) {
+void learner_updweights(void *net, float *grads, const float multiplier) {
   PyObject *gdata = NULL;
   PyObject *res = NULL;
   npy_intp len = learner_netsize(net);
@@ -347,7 +347,7 @@ void learner_updweights(void *net, float *grads, size_t numMB) {
 
   PyErr_Clear(); // Clear error state before returning to Python
   res = PyObject_CallMethod((PyObject *)net, "upd_grads", "On", gdata,
-                            (Py_ssize_t)numMB);
+                            multiplier);
   /* Make sure the python function did not keep references */
   assert(gdata->ob_refcnt == 1);
   Py_DECREF(gdata);

@@ -218,11 +218,11 @@ void NativeLearner::deserializeWeights(float *weights) {
 /**
  *
  */
-void NativeLearner::acceptGradients(float *gradients, size_t numMB) {
+void NativeLearner::acceptGradients(float *gradients, const float multiplier) {
 	// This code needs to accept gradients generated remotely and use them
 	// to update the weights.
 	// TODO: This is where the update rule, e.g. adagrad is important.
-	pimpl_->learner_updweights(pimpl_->learner_data, gradients, numMB);
+	pimpl_->learner_updweights(pimpl_->learner_data, gradients, multiplier);
 }
 
 float NativeLearner::testOneEpochSC(float *weights, size_t numTesters, size_t myIndex) {

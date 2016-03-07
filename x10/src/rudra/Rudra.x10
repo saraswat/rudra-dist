@@ -175,7 +175,7 @@ public class Rudra(config:RudraConfig,
                 if (nwMode != NW_BUFFER) {
                     if (here.id==0) logger.info(()=> "Rudra: Starting HardSync");
                     new HardSync(config, confName, noTest, weightsFile, 
-                                 team, new Logger(ll), lt, solverType, nLearner).run();
+                                 team, new Logger(ll), lr, lt, solverType, nLearner).run();
                 } else {
                     if (here.id==0) logger.info(()=> "Rudra: Starting buffered HardSync");
                     val fromL = SwapBuffer.make[TimedGradient](false, new TimedGradient(size));

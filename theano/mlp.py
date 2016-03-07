@@ -151,13 +151,12 @@ class Model(object):
 
     # This doesn't have adagrad yet, it's just to make sure the rest works.
     # This should be update gradients NOT update parameters ** upd_grads **
-    def upd_grads(self, buf, numMB):
-        mult = 1.0 / numMB
+    def upd_grads(self, buf, multiplier):
         s = 0
         for g in self.grads:
             g_val = g.get_value(borrow=True)
             t = s + g_val.size
-            new_g = numpy.reshape(buf[s:t], g_val.shape) * mult
+            new_g = numpy.reshape(buf[s:t], g_val.shape) * multiplier
             g.set_value(new_g)  # Can we use borrow=True? I don't think so, but I'm not 100% sure.
 #            new_grads.append(new_g)
             s = t

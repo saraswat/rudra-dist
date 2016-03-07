@@ -60,7 +60,8 @@ import x10.io.Unserializable;
     public def getNetworkSize():UInt = getNetworkSize(nLearner);
 
     public def acceptGradients(delta:Rail[Float], numMB:UInt):void {
-        nLearner.acceptGradients(delta,numMB as Long);
+        val multiplier = 1.0f / numMB;
+        nLearner.acceptGradients(delta, multiplier);
     }
 
     public def serializeWeights(w:Rail[Float]): void{

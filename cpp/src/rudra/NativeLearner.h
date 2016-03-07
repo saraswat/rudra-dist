@@ -85,13 +85,15 @@ public:
 	 */
 	void setLearningRateMultiplier(float lrMultiplier);
 
-    /**
-     * Update the network weights by applying the update rule with
-     * the given set of gradients.
-     * @param grad the gradients
-     * @param numMB the number of minibatches which contributed to gradients
-     */
-	void acceptGradients(float *grad, size_t numMB);
+	/**
+	 * Update the network weights by applying the update rule with
+	 * the given set of gradients.
+	 * @param gradients the gradients
+	 * @param multiplier amount by which to pre-multiply the gradients
+	 *   before using them to update the weights, for example, to discount
+	 *   gradients summed from multiple minibatches, or stale gradients
+	 */
+	void acceptGradients(float *gradients, const float multiplier);
 
 	/**
 	 * Initialize the network with the given weights, score your fraction

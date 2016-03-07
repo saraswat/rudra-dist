@@ -23,7 +23,8 @@ import rudra.util.SwapBuffer;
     def acceptNWGradient(rg:TimedGradient) {
         monitor.atomicBlock(()=> {
                 weightTimeStamp=rg.timeStamp;
-                nLearner.acceptGradients(rg.grad, rg.loadSize());
+                val multiplier = 1.0f / rg.loadSize();
+                nLearner.acceptGradients(rg.grad, multiplier);
                 sizeMB += rg.loadSize();
                 Unit()
             });

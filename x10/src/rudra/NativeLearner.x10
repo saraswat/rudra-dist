@@ -76,8 +76,8 @@ public class NativeLearner {
     @Native("c++", "#this->setLearningRateMultiplier(#lrMult)")
     public def setLearningRateMultiplier(lrMult:Float):void { }
 
-    @Native("c++", "#this->acceptGradients(#delta->raw, #numMB)")
-    public def acceptGradients(val delta:Rail[Float], val numMB:Long):void{}
+    @Native("c++", "#this->acceptGradients(#delta->raw, #multiplier)")
+    public def acceptGradients(val delta:Rail[Float], val multiplier:Float):void{}
             
     @Native("c++", "#this->testOneEpochSC(#weights->raw, #numTesters, #myIndex)")
         public def testOneEpochSC(weights:Rail[Float], numTesters:Long, myIndex:Long):Float {
