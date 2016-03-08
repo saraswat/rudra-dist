@@ -1,6 +1,15 @@
+/**
+ * Licensed Materials - Property of IBM
+ *
+ * Rudra Distributed Learning Platform
+ *
+ *  Copyright IBM Corp. 2016 All Rights Reserved
+ */
+
 package rudra;
 
 import x10.util.Date;
+
 import rudra.util.SwapBuffer;
 import rudra.util.Logger;
 import rudra.util.Timer;

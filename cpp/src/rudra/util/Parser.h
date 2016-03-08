@@ -1,10 +1,11 @@
 /*
- * parser.h
+ * Parser.h
  *
- *  Created on: Feb 25, 2015
- *      Author: suyog
+ * Licensed Materials - Property of IBM
  *
- *      This class reads the configuration file and stores the key value pairs in its member object
+ * Rudra Distributed Learning Platform
+ *
+ *  Copyright IBM Corp. 2016 All Rights Reserved
  */
 
 #ifndef RUDRA_UTIL_PARSER_H_

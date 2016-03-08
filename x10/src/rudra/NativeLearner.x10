@@ -1,8 +1,15 @@
+/**
+ * Licensed Materials - Property of IBM
+ *
+ * Rudra Distributed Learning Platform
+ *
+ *  Copyright IBM Corp. 2016 All Rights Reserved
+ */
+
 package rudra;
 
 import x10.compiler.Native;
 import x10.compiler.NativeCPPInclude;
-import x10.compiler.NativeCPPCompilationUnit;
 import x10.compiler.NativeRep;
 
 /**

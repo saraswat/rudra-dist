@@ -1,8 +1,11 @@
 /*
  * defs.h
  *
- *  Created on: Jul 21, 2014
- *      Author: suyog
+ * Licensed Materials - Property of IBM
+ *
+ * Rudra Distributed Learning Platform
+ *
+ *  Copyright IBM Corp. 2016 All Rights Reserved
  */
 
 #ifndef DEFS_H_

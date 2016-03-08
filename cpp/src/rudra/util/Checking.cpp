@@ -1,3 +1,12 @@
+/*
+ * Checking.cpp
+ *
+ * Licensed Materials - Property of IBM
+ *
+ * Rudra Distributed Learning Platform
+ *
+ *  Copyright IBM Corp. 2016 All Rights Reserved
+ */
 
 #include "../util/Logger.h"
 #include "../util/Checking.h"
@@ -10,12 +19,6 @@
 
 
 namespace rudra {
-
-  void breakpoint()
-  {
-  }
-                 
-                 
 
   static void printBackTrace()
   {
@@ -46,8 +49,6 @@ namespace rudra {
                              const char           *file,
                              int                   line) throw (Exception)
   {
-    breakpoint();
-    
     // Add line number and error info to the msg
     std::ostringstream msgStream;
     if (errorKind != USER_ERROR) {

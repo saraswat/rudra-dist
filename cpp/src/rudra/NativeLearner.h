@@ -1,3 +1,13 @@
+/*
+ * NativeLearner.h
+ *
+ * Licensed Materials - Property of IBM
+ *
+ * Rudra Distributed Learning Platform
+ *
+ *  Copyright IBM Corp. 2016 All Rights Reserved
+ */
+
 #ifndef __NATIVE_LEARNER_IMPL_H
 #define __NATIVE_LEARNER_IMPL_H
 

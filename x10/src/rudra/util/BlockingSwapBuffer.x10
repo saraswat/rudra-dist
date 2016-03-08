@@ -1,13 +1,18 @@
+/**
+ * Licensed Materials - Property of IBM
+ *
+ * Rudra Distributed Learning Platform
+ *
+ *  Copyright IBM Corp. 2016 All Rights Reserved
+ */
+
 package rudra.util;
 
-
-import x10.util.Pair;
-import x10.util.concurrent.AtomicBoolean;
 import x10.util.concurrent.Monitor;
-
 import x10.compiler.Pinned;
-import x10.io.Unserializable;
+
 import rudra.util.Logger;
+
 /**
    A blocking implementation of SwapBuffer.
 

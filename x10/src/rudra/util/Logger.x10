@@ -1,3 +1,11 @@
+/**
+ * Licensed Materials - Property of IBM
+ *
+ * Rudra Distributed Learning Platform
+ *
+ *  Copyright IBM Corp. 2016 All Rights Reserved
+ */
+
 package rudra.util;
 
 import x10.xrx.Runtime;

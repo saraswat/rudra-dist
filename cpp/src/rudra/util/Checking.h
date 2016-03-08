@@ -1,4 +1,12 @@
-
+/*
+ * Checking.h
+ *
+ * Licensed Materials - Property of IBM
+ *
+ * Rudra Distributed Learning Platform
+ *
+ *  Copyright IBM Corp. 2016 All Rights Reserved
+ */
 
 #ifndef RUDRA_UTIL_CHECKING_H_
 #define RUDRA_UTIL_CHECKING_H_
@@ -7,13 +15,6 @@
 #include <sstream>
 
 namespace rudra {
-
-  // This function is just a convenience for setting breakpoints in a debugger.
-  // It is automatically called with any error
-  void breakpoint();
-
-
-
 
   // This class is a container for checking-related stuff
   class Checking

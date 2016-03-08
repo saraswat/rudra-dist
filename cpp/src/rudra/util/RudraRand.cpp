@@ -1,3 +1,13 @@
+/*
+ * RudraRand.cpp
+ *
+ * Licensed Materials - Property of IBM
+ *
+ * Rudra Distributed Learning Platform
+ *
+ *  Copyright IBM Corp. 2016 All Rights Reserved
+ */
+
 #include "rudra/util/RudraRand.h"
 #include <sys/time.h>
 #include <iostream>

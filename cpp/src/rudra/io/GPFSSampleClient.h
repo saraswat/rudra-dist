@@ -1,6 +1,13 @@
 /**
  * GPFSSampleClient.h
+ *
+ * Licensed Materials - Property of IBM
+ *
+ * Rudra Distributed Learning Platform
+ *
+ *  Copyright IBM Corp. 2016 All Rights Reserved
  */
+
 #ifndef RUDRA_IO_GPFSSAMPLECLIENT_H
 #define RUDRA_IO_GPFSSAMPLECLIENT_H
 

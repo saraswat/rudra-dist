@@ -1,13 +1,11 @@
 /*
- * Matrix.h
+ * MatrixContainer.h
  *
- *  Created on: Aug 8, 2014
- *      Author: suyog
+ * Licensed Materials - Property of IBM
  *
- *  A template class defining high level matrix operations
-
- * Modified by vj to just include base container functionality, as needed to 
-   store a minibatch. Removes dependency on cuda, platform, random numbers.
+ * Rudra Distributed Learning Platform
+ *
+ *  Copyright IBM Corp. 2016 All Rights Reserved
  */
 
 #ifndef RUDRA_MATH_MATRIXCONTAINER_H_

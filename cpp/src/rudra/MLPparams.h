@@ -1,8 +1,11 @@
 /*
  * MLPparams.h
  *
- *  Created on: Dec 7, 2014
- *      Author: suyog
+ * Licensed Materials - Property of IBM
+ *
+ * Rudra Distributed Learning Platform
+ *
+ *  Copyright IBM Corp. 2016 All Rights Reserved
  */
 
 #ifndef RUDRA_MLPPARAMS_H_

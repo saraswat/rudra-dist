@@ -1,4 +1,13 @@
+/**
+ * Licensed Materials - Property of IBM
+ *
+ * Rudra Distributed Learning Platform
+ *
+ *  Copyright IBM Corp. 2016 All Rights Reserved
+ */
+
 package rudra.util;
+
 import x10.compiler.NonEscaping;
 
 /** A bounded buffer of size N for values of type T. Used to couple 

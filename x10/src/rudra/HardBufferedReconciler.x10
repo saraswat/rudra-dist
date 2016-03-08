@@ -1,5 +1,12 @@
-package rudra;
+/**
+ * Licensed Materials - Property of IBM
+ *
+ * Rudra Distributed Learning Platform
+ *
+ *  Copyright IBM Corp. 2016 All Rights Reserved
+ */
 
+package rudra;
 
 import x10.compiler.Pinned;
 import x10.io.Unserializable;

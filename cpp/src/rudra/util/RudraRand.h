@@ -1,3 +1,13 @@
+/*
+ * RudraRand.h
+ *
+ * Licensed Materials - Property of IBM
+ *
+ * Rudra Distributed Learning Platform
+ *
+ *  Copyright IBM Corp. 2016 All Rights Reserved
+ */
+
 #ifndef __RUDRA_UTIL_RAND_H_
 #define __RUDRA_UTIL_RAND_H_
 #include <cstdlib>

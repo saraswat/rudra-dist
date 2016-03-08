@@ -1,3 +1,11 @@
+/**
+ * Licensed Materials - Property of IBM
+ *
+ * Rudra Distributed Learning Platform
+ *
+ *  Copyright IBM Corp. 2016 All Rights Reserved
+ */
+
 package rudra;
 
 public class GlobalTimedGradient(size:Long) { // mutated in place, hence fields are vars.

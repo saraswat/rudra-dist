@@ -1,3 +1,11 @@
+/**
+ * Licensed Materials - Property of IBM
+ *
+ * Rudra Distributed Learning Platform
+ *
+ *  Copyright IBM Corp. 2016 All Rights Reserved
+ */
+
 package rudra;
 
 import rudra.util.Logger;
@@ -6,7 +14,6 @@ import rudra.util.SwapBuffer;
 
 import x10.util.concurrent.AtomicBoolean;
 import x10.util.Team;
-
 
 public class HardBufferedLearner(noTest:Boolean, 
                                  weightsFile:String) extends Learner {

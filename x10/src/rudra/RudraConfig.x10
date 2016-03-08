@@ -1,3 +1,11 @@
+/**
+ * Licensed Materials - Property of IBM
+ *
+ * Rudra Distributed Learning Platform
+ *
+ *  Copyright IBM Corp. 2016 All Rights Reserved
+ */
+
 package rudra;
 
 import x10.io.File;
@@ -24,7 +32,6 @@ import x10.io.EOFException;
  * numClasses      = 10
  * numEpochs	   = 30
  * batchSize	   = 16
- * alphaDecay	   = 1
  * 
  * # learning rate schedule
  * learningSchedule = step

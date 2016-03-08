@@ -1,5 +1,11 @@
 /*
  * BinaryMatrixReader.h
+ *
+ * Licensed Materials - Property of IBM
+ *
+ * Rudra Distributed Learning Platform
+ *
+ *  Copyright IBM Corp. 2016 All Rights Reserved
  */
 
 #ifndef RUDRA_IO_BINARYMATRIXREADER_H_

@@ -1,6 +1,11 @@
 /*
  * SampleReader.h
- *  *      This is purely an abstract class
+ *
+ * Licensed Materials - Property of IBM
+ *
+ * Rudra Distributed Learning Platform
+ *
+ *  Copyright IBM Corp. 2016 All Rights Reserved
  */
 
 #ifndef RUDRA_IO_SAMPLEREADER_H_

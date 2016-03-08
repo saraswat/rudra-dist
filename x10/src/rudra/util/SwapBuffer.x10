@@ -1,14 +1,15 @@
+/**
+ * Licensed Materials - Property of IBM
+ *
+ * Rudra Distributed Learning Platform
+ *
+ *  Copyright IBM Corp. 2016 All Rights Reserved
+ */
+
 package rudra.util;
 
-import x10.compiler.NonEscaping;
-import x10.compiler.Volatile;
-
-import x10.util.Pair;
-import x10.util.concurrent.AtomicBoolean;
-import x10.util.concurrent.AtomicInteger;
-import x10.compiler.Pinned;
 import x10.io.Unserializable;
-import rudra.util.Logger;
+
 /**
    A very specialized non-blocking one-place swapping buffer which communicates 
    values of type T between a producer and a consumer without consing any new 
