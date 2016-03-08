@@ -254,9 +254,8 @@ float NativeLearner::testOneEpochSC(float *weights, size_t numTesters, size_t my
 					minibatchY.buf, testSC.getSizePerLabel());
 		}
 	}
-	float testError = totalTestErr / mbPerLearner;
-	// cosmetic changes, to return a percentage, instead of a fraction
-	return testError * 100;
+
+    return totalTestErr / mbPerLearner;
 }
 
 } // namespace rudra

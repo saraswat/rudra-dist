@@ -35,8 +35,9 @@ public class Tester(config:RudraConfig, testerPlace:Place, confName:String, logg
                 val startTime = System.currentTimeMillis();
                 val epochTime = tsWeight.runtime;
                 val score = test(epoch as Int, tsWeight.weight); // can take a long time
+                val scorePercent = String.format("%.2f", [score*100, "dummy arg"]);
                 logger.notify(()=>new Date() + " Tester:Epoch " + epoch + " took " + Timer.time(epochTime) 
-                              + " scored " + score 
+                              + " scored " + scorePercent 
                               + " (testing took " + Timer.time(System.currentTimeMillis()-startTime) + ")");
             }
         } // while done
