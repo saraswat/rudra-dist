@@ -1,4 +1,7 @@
-X10RTIMPL ?= sockets # [mpi | pami | sockets]
+X10RTIMPL ?= mpi # [mpi | pami | sockets]
+
+default: rudra-cudnn
+
 rudra-theano:
 	mkdir -p include
 	mkdir -p lib
