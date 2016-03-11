@@ -66,8 +66,6 @@ Note:
 
 One process is reserved for testing, and the remainder are used as learners.
 (To turn off testing and use all processes for learning, pass the command line argument `-noTest`.)
-For the Theano learner, because of the current limitation that only one NN model can be used per process, we have to use `-nwMode send_broadcast`. 
-`send_broadcast` requires on additional process to serve as a parameter server.
 
 With MPI or PAMI, the number of places equals the number of processes.
 For sockets, set the number of places with the environment variable `X10_NPLACES`.
@@ -76,7 +74,7 @@ Try running with mlp.py:
 
     $ make rudra-theano X10RTIMPL=sockets
     $ export X10_NPLACES=2
-    $ ./rudra-theano -f examples/theano-mnist.cfg -nwModeStr send_broadcast -noTest -ll 0 -lr 0 -lt 0 -lu 0 
+    $ ./rudra-theano -f examples/theano-mnist.cfg -ll 0 -lr 0 -lt 0 -lu 0 
 
 Log level 0 (TRACING) prints the maximum amount of information. If you don't want it, skip the -l* flags.
 
