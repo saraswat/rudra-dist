@@ -12,6 +12,7 @@
 #define RUDRA_IO_SAMPLEREADER_H_
 
 #include <cstdlib>
+#include <stdint.h>
 #include <iostream>
 #include <fstream>
 #include <string>
