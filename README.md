@@ -74,8 +74,9 @@ For sockets, set the number of places with the environment variable `X10_NPLACES
 
 Try running with mlp.py:
 
+    $ make rudra-theano X10RTIMPL=sockets
     $ export X10_NPLACES=2
-    $ ./rudra-theano -f examples/theano-mnist.cfg -nwMode send_broadcast -noTest -ll 0 -lr 0 -lt 0 -lu 0 
+    $ ./rudra-theano -f examples/theano-mnist.cfg -nwModeStr send_broadcast -noTest -ll 0 -lr 0 -lt 0 -lu 0 
 
 Log level 0 (TRACING) prints the maximum amount of information. If you don't want it, skip the -l* flags.
 
