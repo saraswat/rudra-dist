@@ -38,4 +38,4 @@ clean:
 	cd theano && make clean
 	cd x10 && make clean
 
-.PHONY: all clean rudra-theano rudra-cudnn rudra-basic rudra-mock
+.PHONY: all clean rudra-theano rudra-cudnn rudra-basic rudra-mock lib/librudra.so cpp/librudra.so
