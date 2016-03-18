@@ -33,9 +33,9 @@ rudra-mock:
 	cd x10 && make X10RTIMPL=${X10RTIMPL} RUDRA_LEARNER=mock
 
 clean:
-	rm -rf ./lib ./include ./rudra-theano ./rudra-basic ./rudra-mock
+	rm -rf ./lib ./include ./rudra-theano ./rudra-basic ./rudra-mock lib/librudra.so cpp/librudra.so
 	cd cpp && make clean
 	cd theano && make clean
 	cd x10 && make clean
 
-.PHONY: all clean rudra-theano rudra-cudnn rudra-basic rudra-mock lib/librudra.so cpp/librudra.so
+.PHONY: all clean rudra-theano rudra-cudnn rudra-basic rudra-mock
