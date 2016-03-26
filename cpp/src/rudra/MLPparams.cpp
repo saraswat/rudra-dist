@@ -29,24 +29,24 @@ namespace rudra {
 
 
   // set defaults
-  uint32_t      MLPparams::_numTrainSamples = RUDRA_DEFAULT_INT;
-  uint32_t      MLPparams::_numClasses      = RUDRA_DEFAULT_INT;
-  uint32_t      MLPparams::_numInputDim     = RUDRA_DEFAULT_INT;
-  uint32_t      MLPparams::_numTestSamples  = RUDRA_DEFAULT_INT;
-  uint32_t      MLPparams::_numEpochs       = RUDRA_DEFAULT_INT;
-  uint32_t      MLPparams::_batchSize       = RUDRA_DEFAULT_INT;
-  uint32_t      MLPparams::_testInterval    = RUDRA_DEFAULT_INT;
+  uint32      MLPparams::_numTrainSamples = RUDRA_DEFAULT_INT;
+  uint32      MLPparams::_numClasses      = RUDRA_DEFAULT_INT;
+  uint32      MLPparams::_numInputDim     = RUDRA_DEFAULT_INT;
+  uint32      MLPparams::_numTestSamples  = RUDRA_DEFAULT_INT;
+  uint32      MLPparams::_numEpochs       = RUDRA_DEFAULT_INT;
+  uint32      MLPparams::_batchSize       = RUDRA_DEFAULT_INT;
+  uint32      MLPparams::_testInterval    = RUDRA_DEFAULT_INT;
   std::string MLPparams::_trainData       = RUDRA_DEFAULT_STRING;
   std::string MLPparams::_trainLabels     = RUDRA_DEFAULT_STRING;
   std::string MLPparams::_testData        = RUDRA_DEFAULT_STRING;
   std::string MLPparams::_testLabels      = RUDRA_DEFAULT_STRING;
   
-  uint32_t      MLPparams::_chkptInterval   = RUDRA_DEFAULT_INT;
+  uint32      MLPparams::_chkptInterval   = RUDRA_DEFAULT_INT;
   std::string MLPparams::_logDir          = RUDRA_DEFAULT_STRING;
   std::string MLPparams::_rudraHome       = RUDRA_DEFAULT_STRING;
   std::string MLPparams::_resFileName     = RUDRA_DEFAULT_STRING;
-  uint32_t      MLPparams::_epoch           = RUDRA_DEFAULT_INT;
-  uint32_t      MLPparams::_mb              = RUDRA_DEFAULT_INT;
+  uint32      MLPparams::_epoch           = RUDRA_DEFAULT_INT;
+  uint32      MLPparams::_mb              = RUDRA_DEFAULT_INT;
 
   // learning rate related parameters
   std::string MLPparams::LearningRateMultiplier::_lrFile = RUDRA_DEFAULT_STRING;
@@ -203,21 +203,21 @@ void MLPparams::initMLPparams(std::string S) {
 	MLPparams::_testLabels 	= MLPparams::MLPCfg["testLabels"];
 	MLPparams::_meanFile 	= MLPparams::MLPCfg["meanFile"];
 
-	MLPparams::_testInterval = convert::string_to_T<uint32_t>(
+	MLPparams::_testInterval = convert::string_to_T<uint32>(
 			MLPparams::MLPCfg["testInterval"]);
-	MLPparams::_chkptInterval = convert::string_to_T<uint32_t>(
+	MLPparams::_chkptInterval = convert::string_to_T<uint32>(
 			MLPparams::MLPCfg["chkptInterval"]);
-	MLPparams::_numTrainSamples = convert::string_to_T<uint32_t>(
+	MLPparams::_numTrainSamples = convert::string_to_T<uint32>(
 			MLPparams::MLPCfg["numTrainSamples"]);
-	MLPparams::_numTestSamples = convert::string_to_T<uint32_t>(
+	MLPparams::_numTestSamples = convert::string_to_T<uint32>(
 			MLPparams::MLPCfg["numTestSamples"]);
-	MLPparams::_numInputDim = convert::string_to_T<uint32_t>(
+	MLPparams::_numInputDim = convert::string_to_T<uint32>(
 			MLPparams::MLPCfg["numInputDim"]);
-	MLPparams::_numClasses = convert::string_to_T<uint32_t>(
+	MLPparams::_numClasses = convert::string_to_T<uint32>(
 			MLPparams::MLPCfg["numClasses"]);
-	MLPparams::_numEpochs = convert::string_to_T<uint32_t>(
+	MLPparams::_numEpochs = convert::string_to_T<uint32>(
 			MLPparams::MLPCfg["numEpochs"]);
-	MLPparams::_batchSize = convert::string_to_T<uint32_t>(
+	MLPparams::_batchSize = convert::string_to_T<uint32>(
 			MLPparams::MLPCfg["batchSize"]);
 
 	MLPparams::LearningRateMultiplier::_schedule = MLPparams::MLPCfg["learningSchedule"];
